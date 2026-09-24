@@ -1,0 +1,9 @@
+{
+  "name": "obd2-dashboard-pwa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OBD2 HUD Live Dashboard con Copiloto IA de Voz",
+  "scripts": {
+    "start": "vercel dev"
+  }
+}

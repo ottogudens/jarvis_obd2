@@ -1,0 +1,22 @@
+{
+  "name": "OBD2 HUD Live Dashboard",
+  "short_name": "OBD2 HUD",
+  "description": "Dashboard de Telemetría CAN-Bus en tiempo real con Copiloto IA de Voz",
+  "start_url": "/index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0F111A",
+  "theme_color": "#0F111A",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3202/3202926.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3202/3202926.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

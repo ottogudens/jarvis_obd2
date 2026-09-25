@@ -144,7 +144,10 @@
         </div>
 
         <div class="flex items-center space-x-1.5 text-xs">
-            <span class="text-gray-400 font-semibold hidden md:inline"><i class="fa-solid fa-gamepad text-neoncyan mr-1"></i>Modo:</span>
+            <button id="btnToggleSim" onclick="toggleSimulator()" class="px-2 py-1 text-[11px] rounded bg-emerald-900/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1" title="Activar/Desactivar Simulación">
+                <i class="fa-solid fa-play"></i><span class="hidden md:inline font-bold uppercase">Sim</span>
+            </button>
+            <span class="text-gray-500 mx-1 hidden sm:inline">|</span>
             <button onclick="setDrivingScenario('idle')" class="px-2 py-1 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-gray-300 border border-slate-700">Ralentí</button>
             <button onclick="setDrivingScenario('cruising')" class="px-2 py-1 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-gray-300 border border-slate-700">Crucero</button>
             <button onclick="setDrivingScenario('sport')" class="px-2 py-1 text-[11px] rounded bg-indigo-950 hover:bg-indigo-900 text-indigo-300 border border-indigo-700">Deportivo</button>
@@ -703,6 +706,27 @@
         }
 
         function setDrivingScenario(s) { activeScenario = s; }
+
+        let simEnabled = true;
+        function toggleSimulator() {
+            const btn = document.getElementById('btnToggleSim');
+            simEnabled = !simEnabled;
+            
+            if (simEnabled) {
+                if (!elm327.connected && !simIntervalId) {
+                    simIntervalId = setInterval(runSimTick, 150);
+                }
+                btn.className = "px-2 py-1 text-[11px] rounded bg-emerald-900/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1";
+                btn.innerHTML = '<i class="fa-solid fa-play"></i><span class="hidden md:inline font-bold uppercase">Sim</span>';
+            } else {
+                if (simIntervalId) {
+                    clearInterval(simIntervalId);
+                    simIntervalId = null;
+                }
+                btn.className = "px-2 py-1 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-gray-400 border border-slate-600 flex items-center space-x-1";
+                btn.innerHTML = '<i class="fa-solid fa-pause"></i><span class="hidden md:inline font-bold uppercase">Sim</span>';
+            }
+        }
 
         function dismissAlert() {
             document.getElementById('alertBanner').classList.add('hidden');
@@ -1304,13 +1328,8 @@
                 this._updateUI(false);
                 termLog('Desconectado manualmente.', 'warn');
                 // Resume simulator
-                if (!simIntervalId) {
-                    simIntervalId = setInterval(() => {
-                        simulateVehiclePhysics();
-                        alertEngine.check('tcm', vehicleData.tcmTemp, thresholds.tcmWarn, thresholds.tcmCrit, 'cardTcm', 'Temperatura de transmisión');
-                        alertEngine.check('coolant', vehicleData.coolantTemp, 98, thresholds.coolantCrit, 'cardCoolant', 'Temperatura de refrigerante');
-                        alertEngine.check('rpm', vehicleData.rpm, 5500, 6500, null, 'Revoluciones del motor');
-                    }, 150);
+                if (!simIntervalId && simEnabled) {
+                    simIntervalId = setInterval(runSimTick, 150);
                 }
             }
 
@@ -1584,6 +1603,20 @@
         // BOOT
         // ══════════════════════════════════════════════════════════════════
         let simIntervalId = null;
+
+        function runSimTick() {
+            simulateVehiclePhysics();
+            // Run alert checks on every sim tick
+            alertEngine.check('tcm',     vehicleData.tcmTemp,    thresholds.tcmWarn,  thresholds.tcmCrit,    'cardTcm',     'Temperatura de transmisión');
+            alertEngine.check('coolant', vehicleData.coolantTemp, 98,                  thresholds.coolantCrit,'cardCoolant', 'Temperatura de refrigerante');
+            alertEngine.check('rpm',     vehicleData.rpm,         5500,                6500,                  null,          'Revoluciones del motor');
+            // Voltage: warn when < 11.8V, critical when < 11.5V
+            if (vehicleData.voltage < thresholds.voltCrit) {
+                alertEngine.check('volt', vehicleData.voltage, null, null, null, 'Voltaje de batería crítico');
+            } else if (vehicleData.voltage < thresholds.voltLow) {
+                alertEngine.check('volt', vehicleData.voltage, null, null, null, 'Voltaje de batería bajo');
+            }
+        }
 
         window.addEventListener('DOMContentLoaded', () => {
             initChart();

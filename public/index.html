@@ -96,6 +96,39 @@
         .badge-gemini { background: rgba(139,92,246,0.2); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
         .badge-openai { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
         .badge-fallback { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+
+        /* Battery card */
+        .battery-shell {
+            position: relative;
+            width: 100%;
+            height: 28px;
+            border: 2px solid currentColor;
+            border-radius: 5px;
+            overflow: visible;
+        }
+        .battery-shell::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -8px;
+            transform: translateY(-50%);
+            width: 5px;
+            height: 12px;
+            background: currentColor;
+            border-radius: 0 3px 3px 0;
+        }
+        .battery-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.6s ease, background-color 0.4s ease;
+        }
+        .bolt-charging {
+            animation: bolt-flash 0.9s infinite alternate;
+        }
+        @keyframes bolt-flash {
+            from { opacity: 1; transform: scale(1); }
+            to   { opacity: 0.3; transform: scale(0.85); }
+        }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden flex flex-col select-none">
@@ -215,7 +248,7 @@
             <button onclick="dismissAlert()" class="text-xs text-gray-300 hover:text-white px-3 py-1 bg-rose-900/80 rounded font-bold">Ignorar</button>
         </div>
 
-        <div class="flex-1 min-h-0 grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div class="flex-1 min-h-0 grid grid-cols-2 md:grid-cols-5 gap-2">
             <div class="glass-panel p-2.5 rounded-xl flex flex-col justify-between relative overflow-hidden">
                 <div class="flex justify-between items-center">
                     <div>
@@ -309,6 +342,45 @@
                     <span>Máx: <strong id="lblCritCoolant" class="text-rose-500">108°C</strong></span>
                 </div>
             </div>
+
+            <!-- ═══════════ BATTERY / VOLTAGE CARD ═══════════ -->
+            <div id="cardBattery" class="glass-panel p-2.5 rounded-xl flex flex-col justify-between relative overflow-hidden transition-all duration-300">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span class="text-[10px] font-bold text-yellow-400 uppercase flex items-center gap-1 tracking-wider">
+                            <i class="fa-solid fa-car-battery"></i> Eléctrico
+                        </span>
+                        <h3 class="text-xs font-bold text-white leading-none">BATERÍA / VOLTAJE</h3>
+                    </div>
+                    <span class="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 text-[10px] font-mono">0142</span>
+                </div>
+
+                <!-- Voltage value + bolt icon -->
+                <div class="flex-1 flex flex-col items-center justify-center gap-1 my-1">
+                    <div class="flex items-end gap-1.5">
+                        <span id="valVoltage" class="text-3xl font-black digital-font text-yellow-300 leading-none" style="text-shadow:0 0 12px rgba(253,224,71,0.6)">14.1</span>
+                        <div class="flex flex-col items-start pb-0.5">
+                            <span class="text-[10px] text-gray-400 leading-none">V</span>
+                            <i id="boltIcon" class="fa-solid fa-bolt text-yellow-300 text-[10px] bolt-charging"></i>
+                        </div>
+                    </div>
+
+                    <!-- Battery shell -->
+                    <div class="w-full px-1">
+                        <div id="batteryShell" class="battery-shell text-yellow-400" style="color:#facc15">
+                            <div id="batteryFill" class="battery-fill" style="width:80%;background:#facc15"></div>
+                        </div>
+                    </div>
+
+                    <!-- Status label -->
+                    <span id="batteryStatus" class="text-[10px] font-bold tracking-widest text-yellow-300 uppercase">Cargando</span>
+                </div>
+
+                <div class="flex justify-between text-[10px] text-gray-400 pt-1 border-t border-cardborder/50">
+                    <span>Carga: <strong id="batteryPct" class="text-yellow-300">80%</strong></span>
+                    <span>Alt: <strong id="altStatus" class="text-emerald-400">ON</strong></span>
+                </div>
+            </div>
         </div>
 
         <div class="h-[38%] min-h-0 grid grid-cols-12 gap-2">
@@ -381,8 +453,8 @@
             }
         }
 
-        const vehicleData = { rpm: 800, speed: 0, throttle: 10, tcmTemp: 82.0, coolantTemp: 89.0, boost: 0.0 };
-        const thresholds = { tcmWarn: 105.0, tcmCrit: 118.0, coolantCrit: 108.0 };
+        const vehicleData = { rpm: 800, speed: 0, throttle: 10, tcmTemp: 82.0, coolantTemp: 89.0, boost: 0.0, voltage: 13.8 };
+        const thresholds = { tcmWarn: 105.0, tcmCrit: 118.0, coolantCrit: 108.0, voltLow: 11.8, voltCrit: 11.5, voltHigh: 15.0 };
 
         function drawGauge(canvasId, value, minVal, maxVal, warnVal, critVal, colorBase = '#00F0FF') {
             const canvas = document.getElementById(canvasId);
@@ -483,6 +555,7 @@
                     vehicleData.boost = -8.0 + rand * 0.5;
                     vehicleData.tcmTemp = Math.max(80, vehicleData.tcmTemp - 0.05);
                     vehicleData.coolantTemp = Math.max(88, vehicleData.coolantTemp - 0.04);
+                    vehicleData.voltage = Math.max(13.6, Math.min(14.4, vehicleData.voltage + rand * 0.04));
                     break;
                 case 'cruising':
                     vehicleData.rpm = Math.max(1800, Math.min(2400, vehicleData.rpm + rand * 80));
@@ -491,6 +564,7 @@
                     vehicleData.boost = 2.0 + rand * 1.5;
                     if (vehicleData.tcmTemp < 92) vehicleData.tcmTemp += 0.1;
                     if (vehicleData.coolantTemp < 92) vehicleData.coolantTemp += 0.08;
+                    vehicleData.voltage = Math.max(13.8, Math.min(14.6, vehicleData.voltage + rand * 0.05));
                     break;
                 case 'sport':
                     vehicleData.rpm = Math.max(3500, Math.min(6200, vehicleData.rpm + rand * 250));
@@ -499,6 +573,8 @@
                     vehicleData.boost = 14.5 + rand * 3.0;
                     if (vehicleData.tcmTemp < 108) vehicleData.tcmTemp += 0.3;
                     if (vehicleData.coolantTemp < 102) vehicleData.coolantTemp += 0.2;
+                    // Heavy electrical load (fans, fuel pump, ignition) slightly drops voltage
+                    vehicleData.voltage = Math.max(13.2, Math.min(14.2, vehicleData.voltage + rand * 0.08));
                     break;
                 case 'overheat':
                     vehicleData.rpm = 4500 + rand * 100;
@@ -507,6 +583,8 @@
                     vehicleData.boost = 18.0 + rand * 1.0;
                     vehicleData.tcmTemp += 0.4;
                     vehicleData.coolantTemp += 0.25;
+                    // Alternator stressed — voltage degrades slowly
+                    vehicleData.voltage = Math.max(11.4, vehicleData.voltage - 0.015 + rand * 0.02);
                     break;
             }
 
@@ -522,6 +600,8 @@
             drawGauge('gaugeTcmTemp', vehicleData.tcmTemp, 20, 150, thresholds.tcmWarn, thresholds.tcmCrit, '#00F0FF');
             drawGauge('gaugeCoolant', vehicleData.coolantTemp, 20, 130, 98, thresholds.coolantCrit, '#00F0FF');
 
+            updateBatteryCard(vehicleData.voltage);
+
             boostDataHistory.push(vehicleData.boost);
             boostDataHistory.shift();
             if (boostChart) boostChart.update();
@@ -530,6 +610,74 @@
         function setDrivingScenario(s) { activeScenario = s; }
         function dismissAlert() { document.getElementById('alertBanner').classList.add('hidden'); }
         function toggleAudio() { audioEnabled = !audioEnabled; }
+
+        // ── Battery Card Renderer ─────────────────────────────────────────────
+        /**
+         * Voltage state machine:
+         *  < 11.5V  → Critical  (red)    — battery failing / deep discharge
+         *  11.5–11.8V → Low     (red)    — discharged
+         *  11.8–12.2V → Warning (amber)  — low charge, engine off
+         *  12.2–13.0V → Normal  (cyan)   — resting voltage
+         *  13.0–14.8V → Charging(green)  — alternator nominal
+         *  > 14.8V  → Overvoltage(amber) — regulator fault
+         */
+        function getBatteryState(v) {
+            if (v < 11.5)  return { label: 'CRÍTICA',      color: '#FF0055', fill: '#FF0055', altOn: false, pct: Math.max(0,  ((v - 10) / 1.5)  * 100) };
+            if (v < 11.8)  return { label: 'BAJA',         color: '#FF0055', fill: '#FF0055', altOn: false, pct: Math.max(5,  ((v - 10) / 3)    * 100) };
+            if (v < 12.2)  return { label: 'DESCARGADA',   color: '#FFCC00', fill: '#FFCC00', altOn: false, pct: Math.max(10, ((v - 10) / 4)    * 100) };
+            if (v < 13.0)  return { label: 'NORMAL',       color: '#00F0FF', fill: '#00F0FF', altOn: false, pct: Math.min(95, ((v - 10) / 5)    * 100) };
+            if (v <= 14.8) return { label: 'CARGANDO',     color: '#00FF66', fill: '#00FF66', altOn: true,  pct: Math.min(99, ((v - 10) / 5)    * 100) };
+            return              { label: 'SOBREVOLTAJE',   color: '#FFCC00', fill: '#FFCC00', altOn: true,  pct: 100 };
+        }
+
+        function updateBatteryCard(v) {
+            const state = getBatteryState(v);
+
+            // Voltage text
+            const voltEl = document.getElementById('valVoltage');
+            voltEl.textContent = v.toFixed(1);
+            voltEl.style.color = state.color;
+            voltEl.style.textShadow = `0 0 12px ${state.color}80`;
+
+            // Battery shell border color
+            document.getElementById('batteryShell').style.color = state.color;
+
+            // Fill bar
+            const fill = document.getElementById('batteryFill');
+            fill.style.width  = Math.round(state.pct) + '%';
+            fill.style.background = state.fill;
+
+            // Status label
+            const statusEl = document.getElementById('batteryStatus');
+            statusEl.textContent = state.label;
+            statusEl.style.color = state.color;
+
+            // Charge % text
+            document.getElementById('batteryPct').textContent = Math.round(state.pct) + '%';
+            document.getElementById('batteryPct').style.color = state.color;
+
+            // Alternator indicator
+            const altEl = document.getElementById('altStatus');
+            altEl.textContent  = state.altOn ? 'ON' : 'OFF';
+            altEl.className    = state.altOn ? 'text-emerald-400' : 'text-rose-400';
+
+            // Bolt / charging icon
+            const bolt = document.getElementById('boltIcon');
+            bolt.style.color   = state.color;
+            bolt.className     = state.altOn
+                ? 'fa-solid fa-bolt text-[10px] bolt-charging'
+                : 'fa-solid fa-bolt text-[10px] opacity-20';
+
+            // Card glow
+            const card = document.getElementById('cardBattery');
+            card.classList.remove('alert-pulse-critical');
+            card.style.borderColor = '';
+            if (state.label === 'CRÍTICA' || state.label === 'BAJA') {
+                card.classList.add('alert-pulse-critical');
+            } else if (state.label === 'DESCARGADA' || state.label === 'SOBREVOLTAJE') {
+                card.style.borderColor = 'rgba(255,204,0,0.6)';
+            }
+        }
 
         // ── AI Copilot API Call (multi-provider) ─────────────────────────────
         async function askAiCopilot(query) {
@@ -1060,6 +1208,12 @@
                 alertEngine.check('tcm',     vehicleData.tcmTemp,    thresholds.tcmWarn,  thresholds.tcmCrit,    'cardTcm',     'Temperatura de transmisión');
                 alertEngine.check('coolant', vehicleData.coolantTemp, 98,                  thresholds.coolantCrit,'cardCoolant', 'Temperatura de refrigerante');
                 alertEngine.check('rpm',     vehicleData.rpm,         5500,                6500,                  null,          'Revoluciones del motor');
+                // Voltage: warn when < 11.8V, critical when < 11.5V
+                if (vehicleData.voltage < thresholds.voltCrit) {
+                    alertEngine.check('volt', vehicleData.voltage, null, null, null, 'Voltaje de batería crítico');
+                } else if (vehicleData.voltage < thresholds.voltLow) {
+                    alertEngine.check('volt', vehicleData.voltage, null, null, null, 'Voltaje de batería bajo');
+                }
             }, 150);
         });
     </script>

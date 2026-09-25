@@ -1086,7 +1086,13 @@
 
             async connect() {
                 if (!navigator.bluetooth) {
-                    throw new Error('Web Bluetooth no disponible.\nUsa Chrome/Edge en HTTPS o en localhost.');
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                    if (isIOS) {
+                        throw new Error('Apple restringe el Bluetooth en la web (iOS).\n Descarga la App gratuita "Bluefy" en la App Store y abre esta URL allí.');
+                    } else {
+                        throw new Error('Web Bluetooth no disponible.\nUsa Chrome/Edge en HTTPS o en localhost.');
+                    }
                 }
 
                 // Declare all service UUIDs we may need access to

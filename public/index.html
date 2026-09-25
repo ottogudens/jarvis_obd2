@@ -2,8 +2,14 @@
 <html lang="es" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OBD2 Live Dashboard & Simulator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>OBD2 Live HUD &amp; AI Copilot</title>
+    <meta name="description" content="Dashboard de telemetría CAN-Bus en tiempo real con Copiloto IA de voz. ELM327 Bluetooth, PIDs OEM, alertas preventivas.">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0F111A">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -63,6 +69,33 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #0F111A; }
         ::-webkit-scrollbar-thumb { background: #2A2E45; border-radius: 2px; }
+
+        /* Provider Toggle Buttons */
+        .provider-btn { color: #94a3b8; }
+        .active-provider {
+            background: rgba(139, 92, 246, 0.25);
+            color: #e2e8f0;
+            box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+        }
+        .active-provider-openai {
+            background: rgba(16, 185, 129, 0.2);
+            color: #e2e8f0;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+        }
+        /* Provider badge in response */
+        .provider-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+        .badge-gemini { background: rgba(139,92,246,0.2); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+        .badge-openai { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .badge-fallback { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden flex flex-col select-none">
@@ -96,10 +129,11 @@
                 </select>
             </div>
 
-            <div id="connectionPill" class="flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span id="connectionText" class="hidden sm:inline">38400 BAUD</span>
-            </div>
+            <button id="btnBluetooth" onclick="bluetoothConnect()" title="Conectar ELM327 vía Bluetooth"
+                class="flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-blue-400 border border-blue-500/30 transition">
+                <i id="btIcon" class="fa-brands fa-bluetooth"></i>
+                <span id="connectionText" class="hidden sm:inline">Conectar BT</span>
+            </button>
 
             <button id="btnAiCopilot" onclick="toggleAiCopilot()" class="px-2.5 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded text-[11px] font-bold transition flex items-center space-x-1.5 shadow-lg shadow-purple-900/30">
                 <i class="fa-solid fa-wand-magic-sparkles text-amber-300 animate-pulse"></i>
@@ -118,7 +152,7 @@
     </header>
 
     <div id="aiCopilotDrawer" class="hidden absolute bottom-3 right-3 z-50 glass-panel border border-purple-500/40 rounded-2xl w-80 sm:w-96 p-3 shadow-2xl bg-cardbg/95 backdrop-blur-xl flex flex-col space-y-2 transition-all duration-300">
-        <div class="flex justify-between items-center border-b border-purple-500/20 pb-2">
+        <div class="flex justify-between items-start border-b border-purple-500/20 pb-2">
             <div class="flex items-center space-x-2">
                 <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-400 flex items-center justify-center text-white text-xs shadow-md">
                     <i class="fa-solid fa-microchip"></i>
@@ -128,7 +162,22 @@
                     <span id="aiStatusText" class="text-[10px] text-purple-300 block leading-none">Listo para escuchar...</span>
                 </div>
             </div>
-            <button onclick="toggleAiCopilot()" class="text-gray-400 hover:text-white text-xs p-1"><i class="fa-solid fa-xmark"></i></button>
+            <div class="flex items-center space-x-1.5">
+                <!-- Provider Toggle -->
+                <div class="flex items-center bg-black/40 rounded-lg p-0.5 border border-slate-700 text-[10px] font-bold gap-0.5">
+                    <button id="btnProviderGemini" onclick="setAiProvider('gemini')"
+                        class="px-2 py-0.5 rounded-md transition-all duration-200 provider-btn active-provider"
+                        title="Gemini 2.0 Flash">
+                        <span class="text-cyan-400">✦</span> Gemini
+                    </button>
+                    <button id="btnProviderOpenAI" onclick="setAiProvider('openai')"
+                        class="px-2 py-0.5 rounded-md transition-all duration-200 provider-btn text-gray-400"
+                        title="GPT-4o Mini">
+                        <span class="text-emerald-400">⬡</span> OpenAI
+                    </button>
+                </div>
+                <button onclick="toggleAiCopilot()" class="text-gray-400 hover:text-white text-xs p-1"><i class="fa-solid fa-xmark"></i></button>
+            </div>
         </div>
 
         <div id="aiVoiceWave" class="h-8 bg-black/40 rounded-lg flex items-center justify-center space-x-1 px-3 border border-purple-500/10">
@@ -308,6 +357,29 @@
         let audioEnabled = true;
         let lastAlertTime = 0;
         let activeScenario = 'idle';
+        let activeAiProvider = 'gemini'; // 'gemini' | 'openai'
+
+        // ── AI Provider Selector ─────────────────────────────────────────────
+        function setAiProvider(provider) {
+            activeAiProvider = provider;
+
+            const btnGemini = document.getElementById('btnProviderGemini');
+            const btnOpenAI = document.getElementById('btnProviderOpenAI');
+
+            // Reset both
+            btnGemini.classList.remove('active-provider', 'active-provider-openai', 'text-gray-400');
+            btnOpenAI.classList.remove('active-provider', 'active-provider-openai', 'text-gray-400');
+
+            if (provider === 'openai') {
+                btnOpenAI.classList.add('active-provider-openai');
+                btnGemini.classList.add('text-gray-400');
+                document.getElementById('aiStatusText').textContent = 'GPT-4o Mini • Listo';
+            } else {
+                btnGemini.classList.add('active-provider');
+                btnOpenAI.classList.add('text-gray-400');
+                document.getElementById('aiStatusText').textContent = 'Gemini 2.0 Flash • Listo';
+            }
+        }
 
         const vehicleData = { rpm: 800, speed: 0, throttle: 10, tcmTemp: 82.0, coolantTemp: 89.0, boost: 0.0 };
         const thresholds = { tcmWarn: 105.0, tcmCrit: 118.0, coolantCrit: 108.0 };
@@ -459,9 +531,536 @@
         function dismissAlert() { document.getElementById('alertBanner').classList.add('hidden'); }
         function toggleAudio() { audioEnabled = !audioEnabled; }
 
+        // ── AI Copilot API Call (multi-provider) ─────────────────────────────
+        async function askAiCopilot(query) {
+            const responseBox = document.getElementById('aiResponseBox');
+            const statusText  = document.getElementById('aiStatusText');
+            const providerLabel = activeAiProvider === 'openai' ? 'GPT-4o Mini' : 'Gemini 2.0 Flash';
+
+            statusText.textContent = `Consultando ${providerLabel}...`;
+            responseBox.innerHTML = '<span class="text-gray-500 animate-pulse">Procesando...</span>';
+
+            const telemetry = {
+                rpm:          vehicleData.rpm,
+                speed:        vehicleData.speed,
+                tcmTemp:      vehicleData.tcmTemp,
+                coolantTemp:  vehicleData.coolantTemp,
+                boost:        vehicleData.boost,
+                voltage:      vehicleData.voltage ?? 12.4,
+                scenario:     activeScenario,
+                activeAlert:  document.getElementById('alertBanner').classList.contains('hidden') ? 'ninguna' : document.getElementById('alertBannerText').textContent,
+                vehicleProfile: document.getElementById('vehicleProfile').value
+            };
+
+            try {
+                const res = await fetch('/api/copilot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userQuery: query, telemetry, provider: activeAiProvider })
+                });
+
+                const data = await res.json();
+
+                if (data.error) throw new Error(data.error);
+
+                const usedProvider = data.provider ?? activeAiProvider;
+                const isFallback   = data.fallback === true;
+
+                // Build provider badge
+                const badgeClass = isFallback ? 'badge-fallback' : (usedProvider === 'openai' ? 'badge-openai' : 'badge-gemini');
+                const badgeIcon  = usedProvider === 'openai' ? '⬡' : '✦';
+                const badgeName  = usedProvider === 'openai' ? 'GPT-4o Mini' : 'Gemini 2.0 Flash';
+                const fallbackNote = isFallback ? ' (fallback)' : '';
+
+                responseBox.innerHTML =
+                    `<span class="provider-badge ${badgeClass}">${badgeIcon} ${badgeName}${fallbackNote}</span><br>${data.reply}`;
+
+                if (isFallback) {
+                    statusText.textContent = `Fallback a ${badgeName}`;
+                } else {
+                    statusText.textContent = `${badgeName} • Respuesta recibida`;
+                }
+
+                // TTS
+                if (audioEnabled && 'speechSynthesis' in window) {
+                    const utt = new SpeechSynthesisUtterance(data.reply);
+                    utt.lang = 'es-MX';
+                    utt.rate = 1.0;
+                    speechSynthesis.cancel();
+                    speechSynthesis.speak(utt);
+                }
+
+            } catch (err) {
+                responseBox.textContent = `Error: ${err.message}`;
+                statusText.textContent  = 'Error de comunicación';
+            }
+        }
+
+        // Expose for quick diagnosis button
+        function askAiQuick(type) {
+            const queries = {
+                diagnostico: `Dame un diagnóstico rápido del vehículo con la telemetría actual.`,
+                turbo:        `¿Cómo está la presión del turbo en este momento?`,
+                tcm:          `¿La temperatura de la transmisión está en niveles seguros?`
+            };
+            askAiCopilot(queries[type] ?? queries.diagnostico);
+        }
+
+        function toggleVoiceListening() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                document.getElementById('aiResponseBox').textContent = 'Tu navegador no soporta reconocimiento de voz. Usa Chrome.';
+                return;
+            }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            document.getElementById('micIcon').className  = 'fa-solid fa-circle-dot text-rose-400 animate-ping';
+            document.getElementById('micBtnText').textContent = 'Escuchando...';
+            document.getElementById('aiStatusText').textContent = 'Escuchando...';
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('aiResponseBox').textContent = `"${transcript}"`;
+                document.getElementById('aiStatusText').textContent  = 'Procesando...';
+                askAiCopilot(transcript);
+            };
+
+            recognition.onerror = (event) => {
+                document.getElementById('aiStatusText').textContent = `Error de voz: ${event.error}`;
+            };
+
+            recognition.onend = () => {
+                document.getElementById('micIcon').className  = 'fa-solid fa-microphone';
+                document.getElementById('micBtnText').textContent = 'Hablar con Copiloto';
+            };
+
+            recognition.start();
+        }
+
+        function toggleAiCopilot() {
+            document.getElementById('aiCopilotDrawer').classList.toggle('hidden');
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // MODULE 1 — OEM PID DATABASE
+        // ══════════════════════════════════════════════════════════════════
+        const OEM_PIDS = {
+            hyundai: {
+                name: 'Hyundai/Kia',
+                tcm: { header: '7E1', pid: '22 10 02', decode: A => A - 40, unit: '°C', label: '221002' },
+                rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
+                speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
+                coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
+                boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
+                voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
+            },
+            subaru: {
+                name: 'Subaru CVT',
+                tcm: { header: '7E1', pid: '22 11 BC', decode: A => A - 40, unit: '°C', label: '2211BC' },
+                rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
+                speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
+                coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
+                boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
+                voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
+            },
+            toyota: {
+                name: 'Toyota',
+                tcm: { header: '7E1', pid: '21 82', decode: A => A - 40, unit: '°C', label: '2182' },
+                rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
+                speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
+                coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
+                boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
+                voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
+            },
+            nissan: {
+                name: 'Nissan CVT',
+                tcm: { header: '7E1', pid: '21 01', decode: A => A - 40, unit: '°C', label: '2101' },
+                rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
+                speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
+                coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
+                boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
+                voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
+            },
+            standard: {
+                name: 'OBD-II Estándar',
+                tcm: { header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C', label: '0105' },
+                rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
+                speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
+                coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
+                boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
+                voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
+            }
+        };
+
+        function getActiveProfile() {
+            return OEM_PIDS[document.getElementById('vehicleProfile').value] || OEM_PIDS.standard;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // MODULE 2 — ELM327 BLUETOOTH ENGINE
+        // ══════════════════════════════════════════════════════════════════
+        class ELM327Manager {
+            constructor() {
+                this.device      = null;
+                this.server      = null;
+                this.txChar      = null;
+                this.rxChar      = null;
+                this.connected   = false;
+                this.activeHeader = null;
+                this._recvBuf    = '';
+                this._pending    = null;  // { resolve, reject, timer }
+                this._retries    = 0;
+                this._maxRetries = 6;
+            }
+
+            async connect() {
+                if (!navigator.bluetooth) throw new Error('Web Bluetooth no soportado. Usa Chrome/Edge.');
+                this.device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'OBDII' }, { name: 'ELM327' }, { namePrefix: 'OBD' }, { namePrefix: 'V-Link' }],
+                    optionalServices: ['0000fff0-0000-1000-8000-00805f9b34fb',
+                                       '00001101-0000-1000-8000-00805f9b34fb']
+                });
+                this.device.addEventListener('gattserverdisconnected', () => this._onDisconnect());
+                await this._connectGATT();
+            }
+
+            async _connectGATT() {
+                this.server = await this.device.gatt.connect();
+                // Try common ELM327 BLE service UUIDs
+                const serviceUUID = '0000fff0-0000-1000-8000-00805f9b34fb';
+                const service = await this.server.getPrimaryService(serviceUUID);
+                this.txChar   = await service.getCharacteristic('0000fff2-0000-1000-8000-00805f9b34fb');
+                this.rxChar   = await service.getCharacteristic('0000fff1-0000-1000-8000-00805f9b34fb');
+                await this.rxChar.startNotifications();
+                this.rxChar.addEventListener('characteristicvaluechanged', e => this._onData(e));
+                this.connected = true;
+                this._retries  = 0;
+                await this._initialize();
+                this._updateUI(true);
+                termLog('> Conectado: ' + this.device.name, 'ok');
+            }
+
+            async _initialize() {
+                const cmds = ['AT Z','AT E0','AT L0','AT S0','AT H1','AT SP 0'];
+                for (const cmd of cmds) {
+                    const r = await this.sendCommand(cmd, 3000);
+                    termLog(`> ${cmd}`, 'cmd');
+                    termLog(r, 'resp');
+                    await this._sleep(80);
+                }
+                this.activeHeader = null; // reset cache after reinit
+            }
+
+            _onData(event) {
+                const chunk = new TextDecoder().decode(event.target.value);
+                this._recvBuf += chunk;
+                if (this._recvBuf.includes('>') && this._pending) {
+                    clearTimeout(this._pending.timer);
+                    const raw = this._recvBuf.replace('>', '').trim();
+                    this._recvBuf = '';
+                    this._pending.resolve(raw);
+                    this._pending = null;
+                }
+            }
+
+            sendCommand(cmd, timeoutMs = 2000) {
+                return new Promise((resolve, reject) => {
+                    if (!this.connected) { reject(new Error('No conectado')); return; }
+                    this._recvBuf = '';
+                    const timer = setTimeout(() => {
+                        this._pending = null;
+                        reject(new Error(`Timeout: ${cmd}`));
+                    }, timeoutMs);
+                    this._pending = { resolve, reject, timer };
+                    const encoded = new TextEncoder().encode(cmd + '\r');
+                    this.txChar.writeValue(encoded).catch(reject);
+                });
+            }
+
+            async switchHeader(header) {
+                if (this.activeHeader === header) return;
+                await this.sendCommand(`AT SH ${header}`);
+                this.activeHeader = header;
+            }
+
+            /** Parse hex response — returns array of byte integers or null on error */
+            parseHex(raw) {
+                // Strip mode+PID echo bytes (4xx / 6xx prefix), take data bytes
+                const clean = raw.replace(/[^0-9A-Fa-f ]/g, '').trim();
+                const parts = clean.split(/\s+/).filter(x => x.length === 2);
+                if (parts.length < 3) return null;
+                // skip mode(1) + pid(1..2) response prefix
+                return parts.slice(2).map(h => parseInt(h, 16)).filter(n => !isNaN(n));
+            }
+
+            async queryPID(pidDef) {
+                try {
+                    await this.switchHeader(pidDef.header);
+                    const raw   = await this.sendCommand(pidDef.pid);
+                    const bytes = this.parseHex(raw);
+                    if (!bytes || bytes.length === 0) return null;
+                    return pidDef.decode(bytes[0], bytes[1] ?? 0);
+                } catch { return null; }
+            }
+
+            _onDisconnect() {
+                this.connected = false;
+                this.activeHeader = null;
+                this._updateUI(false);
+                termLog('⚠ Desconectado. Reintentando...', 'warn');
+                const delay = Math.min(500 * Math.pow(2, this._retries), 30000);
+                this._retries++;
+                if (this._retries <= this._maxRetries) {
+                    setTimeout(() => this._connectGATT().catch(() => this._onDisconnect()), delay);
+                } else {
+                    termLog('✗ Sin reconexión. Activa modo simulación.', 'err');
+                }
+            }
+
+            _updateUI(connected) {
+                const btn = document.getElementById('btnBluetooth');
+                const txt = document.getElementById('connectionText');
+                const ico = document.getElementById('btIcon');
+                if (connected) {
+                    btn.className = btn.className.replace('text-blue-400 border-blue-500/30', 'text-emerald-400 border-emerald-500/30');
+                    txt.textContent = getActiveProfile().name;
+                    ico.className = 'fa-brands fa-bluetooth animate-pulse';
+                } else {
+                    btn.className = btn.className.replace('text-emerald-400 border-emerald-500/30', 'text-blue-400 border-blue-500/30');
+                    txt.textContent = 'Conectar BT';
+                    ico.className = 'fa-brands fa-bluetooth';
+                }
+            }
+
+            _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+        }
+
+        const elm327 = new ELM327Manager();
+
+        async function bluetoothConnect() {
+            try {
+                await elm327.connect();
+                // Switch from simulator to real BT polling
+                clearInterval(simIntervalId);
+                pollingLoop.start();
+            } catch (err) {
+                termLog(`✗ BT Error: ${err.message}`, 'err');
+                alert('No se pudo conectar: ' + err.message);
+            }
+        }
+
+        // Terminal logger
+        function termLog(msg, type = 'resp') {
+            const el   = document.getElementById('terminalLog');
+            const line = document.createElement('div');
+            line.textContent = msg;
+            const colors = { cmd: 'text-gray-400', resp: 'text-emerald-400', ok: 'text-cyan-400', warn: 'text-amber-400', err: 'text-rose-400' };
+            line.className = colors[type] || 'text-gray-300';
+            el.appendChild(line);
+            // Keep last 40 lines
+            while (el.children.length > 40) el.removeChild(el.firstChild);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // MODULE 3 — PRIORITY POLLING LOOP (real BT mode)
+        // ══════════════════════════════════════════════════════════════════
+        class PriorityPollingLoop {
+            constructor(manager) {
+                this.mgr     = manager;
+                this._hTimer = null;
+                this._lTimer = null;
+                this._highQ  = [];
+                this._lowQ   = [];
+                this._running = false;
+            }
+
+            addHigh(name, pidDef, cb) { this._highQ.push({ name, pidDef, cb }); }
+            addLow (name, pidDef, cb) { this._lowQ.push({ name, pidDef, cb }); }
+
+            start() {
+                if (this._running) return;
+                this._running = true;
+                this._pollHigh();
+                this._pollLow();
+            }
+
+            stop() {
+                this._running = false;
+                clearTimeout(this._hTimer);
+                clearTimeout(this._lTimer);
+            }
+
+            async _pollHigh() {
+                if (!this._running) return;
+                const t0 = Date.now();
+                for (const item of this._highQ) {
+                    const val = await this.mgr.queryPID(item.pidDef);
+                    if (val !== null) { item.cb(val); termLog(`${item.name}: ${val.toFixed ? val.toFixed(1) : val}`, 'resp'); }
+                }
+                const elapsed = Date.now() - t0;
+                this._hTimer = setTimeout(() => this._pollHigh(), Math.max(0, 150 - elapsed));
+            }
+
+            async _pollLow() {
+                if (!this._running) return;
+                for (const item of this._lowQ) {
+                    const val = await this.mgr.queryPID(item.pidDef);
+                    if (val !== null) { item.cb(val); }
+                }
+                this._lTimer = setTimeout(() => this._pollLow(), 2000);
+            }
+        }
+
+        const pollingLoop = new PriorityPollingLoop(elm327);
+
+        function setupPollingForProfile() {
+            const p = getActiveProfile();
+            pollingLoop._highQ = [];
+            pollingLoop._lowQ  = [];
+            pollingLoop.addHigh('RPM',   p.rpm,   v => { vehicleData.rpm   = v; });
+            pollingLoop.addHigh('Speed', p.speed, v => { vehicleData.speed  = v; });
+            pollingLoop.addHigh('Boost', p.boost, v => { vehicleData.boost  = v; });
+            pollingLoop.addLow ('TCM',      p.tcm,     v => { vehicleData.tcmTemp    = v; });
+            pollingLoop.addLow ('Coolant',  p.coolant, v => { vehicleData.coolantTemp = v; });
+            pollingLoop.addLow ('Voltage',  p.voltage, v => { vehicleData.voltage     = v; });
+            // Update PID tag in UI
+            document.getElementById('pidTcmTag').textContent = p.tcm.label;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // MODULE 4 — ALERT ENGINE (hysteresis + beep + TTS)
+        // ══════════════════════════════════════════════════════════════════
+        class AlertEngine {
+            constructor() {
+                this.hysteresis  = 3.0;    // °C margin to clear alert
+                this.cooldownMs  = 15000;  // min ms between voiced alerts per key
+                this._states     = {};     // key -> 'normal'|'warning'|'critical'
+                this._lastSpoken = {};     // key -> timestamp
+                this._audioCtx   = null;
+            }
+
+            _getAudioCtx() {
+                if (!this._audioCtx) this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                return this._audioCtx;
+            }
+
+            beep(freq = 880, dur = 0.18, vol = 0.4) {
+                if (!audioEnabled) return;
+                try {
+                    const ctx  = this._getAudioCtx();
+                    const osc  = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.type = 'sine'; osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(vol, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+                    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
+                } catch {}
+            }
+
+            speak(text) {
+                if (!audioEnabled || !('speechSynthesis' in window)) return;
+                try {
+                    speechSynthesis.cancel();
+                    const utt  = new SpeechSynthesisUtterance(text);
+                    utt.lang   = 'es-MX';
+                    utt.rate   = 1.05;
+                    utt.volume = 1.0;
+                    speechSynthesis.speak(utt);
+                } catch {}
+            }
+
+            check(key, value, warnThreshold, critThreshold, cardId, spokenLabel) {
+                const prev  = this._states[key] || 'normal';
+                const card  = cardId ? document.getElementById(cardId) : null;
+                let   next  = 'normal';
+
+                if (critThreshold !== null && value >= critThreshold)       next = 'critical';
+                else if (warnThreshold !== null && value >= warnThreshold)  next = 'warning';
+                // Hysteresis: only clear if value drops sufficiently below threshold
+                else if (prev === 'critical' && critThreshold !== null && value >= critThreshold - this.hysteresis) next = 'critical';
+                else if (prev === 'warning'  && warnThreshold !== null && value >= warnThreshold - this.hysteresis) next = 'warning';
+
+                this._states[key] = next;
+
+                // Apply card styling
+                if (card) {
+                    card.classList.remove('alert-pulse-critical');
+                    card.style.borderColor = '';
+                    if (next === 'critical') card.classList.add('alert-pulse-critical');
+                    else if (next === 'warning') card.style.borderColor = 'rgba(255,204,0,0.6)';
+                }
+
+                // Banner
+                if (next !== 'normal') {
+                    const banner = document.getElementById('alertBanner');
+                    const bannerText = document.getElementById('alertBannerText');
+                    const level = next === 'critical' ? '¡CRÍTICO!' : 'Advertencia';
+                    bannerText.textContent = `${level}: ${spokenLabel} = ${typeof value === 'number' ? value.toFixed(1) : value}`;
+                    banner.classList.remove('hidden');
+                }
+
+                // Voiced alert with cooldown
+                if (next !== 'normal' && next !== prev) {
+                    const now = Date.now();
+                    if (!this._lastSpoken[key] || now - this._lastSpoken[key] > this.cooldownMs) {
+                        this._lastSpoken[key] = now;
+                        const freq = next === 'critical' ? 1200 : 880;
+                        this.beep(freq, 0.2);
+                        setTimeout(() => this.beep(freq, 0.15), 280);
+                        const msg = next === 'critical'
+                            ? `Atención, ${spokenLabel} en nivel crítico: ${value.toFixed ? value.toFixed(0) : value} grados.`
+                            : `Precaución, ${spokenLabel} alcanzó ${value.toFixed ? value.toFixed(0) : value} grados.`;
+                        setTimeout(() => this.speak(msg), 600);
+                    }
+                } else if (next === 'normal' && prev !== 'normal') {
+                    // Cleared
+                    const allNormal = Object.values(this._states).every(s => s === 'normal');
+                    if (allNormal) document.getElementById('alertBanner').classList.add('hidden');
+                }
+            }
+        }
+
+        const alertEngine = new AlertEngine();
+
+        // Unlock audio context on first user interaction
+        document.addEventListener('click', function audioUnlock() {
+            try {
+                alertEngine._getAudioCtx().resume();
+                if ('speechSynthesis' in window) { speechSynthesis.cancel(); }
+            } catch {}
+            document.removeEventListener('click', audioUnlock);
+        }, { once: true });
+
+        // ══════════════════════════════════════════════════════════════════
+        // BOOT
+        // ══════════════════════════════════════════════════════════════════
+        let simIntervalId = null;
+
         window.addEventListener('DOMContentLoaded', () => {
             initChart();
-            setInterval(simulateVehiclePhysics, 150);
+            setupPollingForProfile();
+
+            // Update polling queues when profile changes
+            document.getElementById('vehicleProfile').addEventListener('change', setupPollingForProfile);
+
+            // Register Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
+            }
+
+            // Start simulator by default (BT not connected)
+            simIntervalId = setInterval(() => {
+                simulateVehiclePhysics();
+                // Run alert checks on every sim tick
+                alertEngine.check('tcm',     vehicleData.tcmTemp,    thresholds.tcmWarn,  thresholds.tcmCrit,    'cardTcm',     'Temperatura de transmisión');
+                alertEngine.check('coolant', vehicleData.coolantTemp, 98,                  thresholds.coolantCrit,'cardCoolant', 'Temperatura de refrigerante');
+                alertEngine.check('rpm',     vehicleData.rpm,         5500,                6500,                  null,          'Revoluciones del motor');
+            }, 150);
         });
     </script>
 </body>

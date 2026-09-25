@@ -181,7 +181,7 @@
                 <i id="soundIcon" class="fa-solid fa-volume-high"></i>
             </button>
 
-            <button id="btnEditMode" class="px-2 py-1 bg-cardbg hover:bg-slate-700 border border-cardborder rounded text-[11px] font-semibold text-gray-200 transition flex items-center space-x-1">
+            <button id="btnEditMode" onclick="openThresholds()" class="px-2 py-1 bg-cardbg hover:bg-slate-700 border border-cardborder rounded text-[11px] font-semibold text-gray-200 transition flex items-center space-x-1">
                 <i class="fa-solid fa-sliders text-cyan-400"></i>
                 <span class="hidden sm:inline">Umbrales</span>
             </button>
@@ -250,6 +250,97 @@
                 </div>
             </div>
             <button onclick="dismissAlert()" class="text-xs text-gray-300 hover:text-white px-3 py-1 bg-rose-900/80 rounded font-bold">Ignorar</button>
+        </div>
+
+        <!-- ═══════════ THRESHOLDS MODAL ═══════════ -->
+        <div id="thresholdsModal" class="hidden fixed inset-0 z-[999] flex items-center justify-center">
+            <!-- Backdrop -->
+            <div onclick="closeThresholds()" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+            <!-- Panel -->
+            <div class="relative glass-panel rounded-2xl p-5 w-[92vw] max-w-sm shadow-2xl border border-cyan-500/20 z-10">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-cyan-400"></i> Umbrales de Alerta
+                    </h3>
+                    <button onclick="closeThresholds()" class="text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-3 text-[11px]">
+                    <!-- TCM -->
+                    <div class="bg-slate-800/60 rounded-xl p-3">
+                        <p class="text-purple-300 font-bold uppercase tracking-wider mb-2"><i class="fa-solid fa-gears mr-1"></i>Transmisión (TCM)</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex flex-col gap-1 text-gray-400">
+                                Warn (°C)
+                                <input id="thr_tcmWarn" type="number" min="80" max="130" value="105"
+                                    class="bg-slate-700 rounded-lg px-2 py-1 text-amber-400 font-mono border border-amber-500/30 focus:outline-none focus:border-amber-400 w-full">
+                            </label>
+                            <label class="flex flex-col gap-1 text-gray-400">
+                                Crit (°C)
+                                <input id="thr_tcmCrit" type="number" min="90" max="150" value="118"
+                                    class="bg-slate-700 rounded-lg px-2 py-1 text-rose-400 font-mono border border-rose-500/30 focus:outline-none focus:border-rose-400 w-full">
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Coolant -->
+                    <div class="bg-slate-800/60 rounded-xl p-3">
+                        <p class="text-cyan-300 font-bold uppercase tracking-wider mb-2"><i class="fa-solid fa-droplet mr-1"></i>Refrigerante</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex flex-col gap-1 text-gray-400">
+                                Warn (°C)
+                                <input id="thr_coolantWarn" type="number" min="85" max="115" value="98"
+                                    class="bg-slate-700 rounded-lg px-2 py-1 text-amber-400 font-mono border border-amber-500/30 focus:outline-none w-full">
+                            </label>
+                            <label class="flex flex-col gap-1 text-gray-400">
+                                Crit (°C)
+                                <input id="thr_coolantCrit" type="number" min="90" max="120" value="108"
+                                    class="bg-slate-700 rounded-lg px-2 py-1 text-rose-400 font-mono border border-rose-500/30 focus:outline-none w-full">
+                            </label>
+                        </div>
+                    </div>
+                    <!-- RPM -->
+                    <div class="bg-slate-800/60 rounded-xl p-3">
+                        <p class="text-sky-300 font-bold uppercase tracking-wider mb-2"><i class="fa-solid fa-gauge-high mr-1"></i>Revoluciones (RPM)</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex flex-col gap-1 text-gray-400">
+                                Warn
+                                <input id="thr_rpmWarn" type="number" min="3000" max="7000" step="100" value="5500"
+                                    class="bg-slate-700 rounded-lg px-2 py-1 text-amber-400 font-mono border border-amber-500/30 focus:outline-none w-full">
+                            </label>
+                            <label class="flex flex-col gap-1 text-gray-400">
+                                Crit
+                                <input id="thr_rpmCrit" type="number" min="4000" max="8000" step="100" value="6500"
+                                    class="bg-slate-700 rounded-lg px-2 py-1 text-rose-400 font-mono border border-rose-500/30 focus:outline-none w-full">
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Voltage -->
+                    <div class="bg-slate-800/60 rounded-xl p-3">
+                        <p class="text-yellow-300 font-bold uppercase tracking-wider mb-2"><i class="fa-solid fa-car-battery mr-1"></i>Voltaje</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex flex-col gap-1 text-gray-400">
+                                Low (V)
+                                <input id="thr_voltLow" type="number" min="10" max="13" step="0.1" value="11.8"
+                                    class="bg-slate-700 rounded-lg px-2 py-1 text-amber-400 font-mono border border-amber-500/30 focus:outline-none w-full">
+                            </label>
+                            <label class="flex flex-col gap-1 text-gray-400">
+                                Crit (V)
+                                <input id="thr_voltCrit" type="number" min="9" max="12" step="0.1" value="11.5"
+                                    class="bg-slate-700 rounded-lg px-2 py-1 text-rose-400 font-mono border border-rose-500/30 focus:outline-none w-full">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mt-4">
+                    <button onclick="closeThresholds()" class="flex-1 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-gray-300 text-xs font-bold">Cancelar</button>
+                    <button onclick="applyThresholds()" class="flex-1 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold">
+                        <i class="fa-solid fa-check mr-1"></i>Aplicar
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="flex-1 min-h-0 grid grid-cols-2 md:grid-cols-5 gap-2">
@@ -612,8 +703,66 @@
         }
 
         function setDrivingScenario(s) { activeScenario = s; }
-        function dismissAlert() { document.getElementById('alertBanner').classList.add('hidden'); }
-        function toggleAudio() { audioEnabled = !audioEnabled; }
+
+        function dismissAlert() {
+            document.getElementById('alertBanner').classList.add('hidden');
+            // Reset alert engine states so they don't immediately re-trigger on next tick
+            if (alertEngine) {
+                alertEngine._states     = {};
+                alertEngine._lastSpoken = {};
+            }
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('soundIcon');
+            if (icon) icon.className = audioEnabled
+                ? 'fa-solid fa-volume-high'
+                : 'fa-solid fa-volume-xmark';
+            // Also cancel any ongoing speech
+            if (!audioEnabled && 'speechSynthesis' in window) speechSynthesis.cancel();
+        }
+
+        // ── Threshold Modal ─────────────────────────────────────────────
+        function openThresholds() {
+            // Seed inputs with current values
+            document.getElementById('thr_tcmWarn').value    = thresholds.tcmWarn;
+            document.getElementById('thr_tcmCrit').value    = thresholds.tcmCrit;
+            document.getElementById('thr_coolantWarn').value = 98;
+            document.getElementById('thr_coolantCrit').value = thresholds.coolantCrit;
+            document.getElementById('thr_rpmWarn').value    = thresholds.rpmWarn  || 5500;
+            document.getElementById('thr_rpmCrit').value    = thresholds.rpmCrit  || 6500;
+            document.getElementById('thr_voltLow').value    = thresholds.voltLow;
+            document.getElementById('thr_voltCrit').value   = thresholds.voltCrit;
+            document.getElementById('thresholdsModal').classList.remove('hidden');
+        }
+
+        function closeThresholds() {
+            document.getElementById('thresholdsModal').classList.add('hidden');
+        }
+
+        function applyThresholds() {
+            thresholds.tcmWarn    = parseFloat(document.getElementById('thr_tcmWarn').value);
+            thresholds.tcmCrit    = parseFloat(document.getElementById('thr_tcmCrit').value);
+            thresholds.coolantCrit = parseFloat(document.getElementById('thr_coolantCrit').value);
+            thresholds.rpmWarn    = parseFloat(document.getElementById('thr_rpmWarn').value);
+            thresholds.rpmCrit    = parseFloat(document.getElementById('thr_rpmCrit').value);
+            thresholds.voltLow    = parseFloat(document.getElementById('thr_voltLow').value);
+            thresholds.voltCrit   = parseFloat(document.getElementById('thr_voltCrit').value);
+
+            // Update UI labels
+            const lblWarnTcm  = document.getElementById('lblWarnTcm');
+            const lblCritTcm  = document.getElementById('lblCritTcm');
+            const lblCoolant  = document.getElementById('lblCritCoolant');
+            if (lblWarnTcm)  lblWarnTcm.textContent  = thresholds.tcmWarn + '°C';
+            if (lblCritTcm)  lblCritTcm.textContent  = thresholds.tcmCrit + '°C';
+            if (lblCoolant)  lblCoolant.textContent  = thresholds.coolantCrit + '°C';
+
+            // Reset alert states so new limits apply cleanly
+            if (alertEngine) { alertEngine._states = {}; alertEngine._lastSpoken = {}; }
+
+            closeThresholds();
+        }
 
         // ── Battery Card Renderer ─────────────────────────────────────────────
         /**
@@ -1194,23 +1343,21 @@
             _updateUI(connected) {
                 const btnBT   = document.getElementById('btnBluetooth');
                 const btnDisc = document.getElementById('btnDisconnect');
-                const txt     = document.getElementById('connectionText');
                 const ico     = document.getElementById('btIcon');
 
                 if (connected) {
-                    // Show green connected state + disconnect button
-                    btnBT.className = btnBT.className
-                        .replace('text-blue-400 border-blue-500/30 bg-slate-800 hover:bg-slate-700', '')
-                        + ' text-emerald-400 border-emerald-500/40 bg-emerald-900/20';
-                    ico.className = 'fa-brands fa-bluetooth animate-pulse';
-                    btnDisc.classList.remove('hidden');
-                    btnDisc.classList.add('flex');
+                    // Use classList to avoid fragile string replace on Tailwind classes
+                    btnBT.classList.remove('text-blue-400', 'border-blue-500/30', 'bg-slate-800', 'hover:bg-slate-700');
+                    btnBT.classList.add('text-emerald-400', 'border-emerald-500/40', 'bg-emerald-900/20');
+                    if (ico) ico.className = 'fa-brands fa-bluetooth animate-pulse';
+                    if (btnDisc) { btnDisc.classList.remove('hidden'); btnDisc.classList.add('flex'); }
                 } else {
-                    btnBT.className = 'flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-blue-400 border border-blue-500/30 transition';
-                    ico.className = 'fa-brands fa-bluetooth';
-                    txt.textContent = 'Conectar BT';
-                    btnDisc.classList.add('hidden');
-                    btnDisc.classList.remove('flex');
+                    btnBT.classList.remove('text-emerald-400', 'border-emerald-500/40', 'bg-emerald-900/20');
+                    btnBT.classList.add('text-blue-400', 'border-blue-500/30', 'bg-slate-800', 'hover:bg-slate-700');
+                    if (ico) ico.className = 'fa-brands fa-bluetooth';
+                    const txt = document.getElementById('connectionText');
+                    if (txt) txt.textContent = 'Conectar BT';
+                    if (btnDisc) { btnDisc.classList.add('hidden'); btnDisc.classList.remove('flex'); }
                 }
             }
 
@@ -1221,10 +1368,13 @@
 
         async function bluetoothConnect() {
             const btn = document.getElementById('btnBluetooth');
+            const originalHTML = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i><span class="hidden sm:inline ml-1">Conectando...</span>';
+            let success = false;
             try {
                 await elm327.connect();
+                success = true;
                 // Stop simulator, start real BT polling loop
                 clearInterval(simIntervalId);
                 simIntervalId = null;

@@ -157,16 +157,17 @@
         </div>
 
         <div class="flex items-center space-x-2">
-            <div class="hidden lg:flex items-center space-x-1 bg-cardbg px-2 py-1 rounded border border-cardborder text-xs">
+            <label for="vehicleProfile" title="Selecciona el perfil del vehículo para cargar sus PIDs y encabezado CAN." class="flex min-w-0 items-center space-x-1 bg-cardbg px-2 py-1 rounded border border-cardborder text-xs">
                 <i class="fa-solid fa-car text-cyan-400 text-xs"></i>
-                <select id="vehicleProfile" class="bg-transparent text-white focus:outline-none cursor-pointer text-xs">
+                <span class="hidden sm:inline text-gray-400 font-semibold">Vehículo</span>
+                <select id="vehicleProfile" aria-label="Marca y perfil del vehículo" class="max-w-[38vw] sm:max-w-[220px] bg-transparent text-white focus:outline-none cursor-pointer text-xs">
                     <option value="hyundai">Hyundai/Kia (CAN 7E1)</option>
                     <option value="subaru">Subaru CVT (SSM/CAN)</option>
                     <option value="toyota">Toyota Hybrid (CAN 7E2)</option>
                     <option value="nissan">Nissan CVT</option>
                     <option value="standard">Standard OBD-II</option>
                 </select>
-            </div>
+            </label>
 
             <button id="btnBluetooth" onclick="bluetoothConnect()" title="Conectar ELM327 vía Bluetooth"
                 class="flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-blue-400 border border-blue-500/30 transition">

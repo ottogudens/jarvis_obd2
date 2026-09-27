@@ -11,9 +11,15 @@ const RATE_LIMIT_WINDOW = 60_000; // 60 segundos
 
 function isRateLimited(ip) {
   const now = Date.now();
-  const entry = rateLimitMap.get(ip) || { count: 0, start: now };
-  if (now - entry.start > RATE_LIMIT_WINDOW) {
+  let entry = rateLimitMap.get(ip);
+  if (!entry || now - entry.start > RATE_LIMIT_WINDOW) {
     rateLimitMap.set(ip, { count: 1, start: now });
+    if (rateLimitMap.size > 5000) {
+      for (const [key, value] of rateLimitMap) {
+        if (now - value.start > RATE_LIMIT_WINDOW) rateLimitMap.delete(key);
+      }
+      while (rateLimitMap.size > 5000) rateLimitMap.delete(rateLimitMap.keys().next().value);
+    }
     return false;
   }
   entry.count++;
@@ -22,18 +28,26 @@ function isRateLimited(ip) {
 }
 
 function buildSystemPrompt(telemetry) {
+  const number = (value, fallback) => Number.isFinite(value) ? value : fallback;
+  const scenario = ['idle', 'cruising', 'sport', 'overheat', 'normal'].includes(telemetry.scenario)
+    ? telemetry.scenario : 'normal';
+  const profiles = ['hyundai', 'subaru', 'toyota', 'nissan', 'standard'];
+  const vehicleProfile = profiles.includes(telemetry.vehicleProfile) ? telemetry.vehicleProfile : 'standard';
+  const activeAlert = typeof telemetry.activeAlert === 'string'
+    ? telemetry.activeAlert.replace(/[\u0000-\u001f<>]/g, ' ').slice(0, 120)
+    : 'ninguna';
   return `Eres JARVIS, un copiloto automotriz inteligente en tiempo real. Responde SIEMPRE en español, de forma muy concisa (máximo 2 oraciones cortas), natural y tranquilizadora para ser leída por altavoz al conductor mientras maneja. No uses markdown, listas ni asteriscos.
 
 TELEMETRÍA ACTUAL DEL VEHÍCULO:
-- Revoluciones: ${Math.round(telemetry?.rpm ?? 0)} RPM
-- Velocidad: ${Math.round(telemetry?.speed ?? 0)} km/h
-- Temp. Aceite Transmisión (TCM): ${Number(telemetry?.tcmTemp ?? 0).toFixed(1)} °C
-- Temp. Refrigerante Motor: ${Number(telemetry?.coolantTemp ?? 0).toFixed(1)} °C
-- Presión Turbo Boost: ${Number(telemetry?.boost ?? 0).toFixed(1)} PSI
-- Voltaje de batería: ${Number(telemetry?.voltage ?? 12.4).toFixed(1)} V
-- Modo de conducción activo: ${telemetry?.scenario ?? 'normal'}
-- Alerta activa: ${telemetry?.activeAlert ?? 'ninguna'}
-- Perfil de vehículo: ${telemetry?.vehicleProfile ?? 'Estándar OBD-II'}`;
+- Revoluciones: ${Math.round(number(telemetry.rpm, 0))} RPM
+- Velocidad: ${Math.round(number(telemetry.speed, 0))} km/h
+- Temp. Aceite Transmisión (TCM): ${number(telemetry.tcmTemp, 0).toFixed(1)} °C
+- Temp. Refrigerante Motor: ${number(telemetry.coolantTemp, 0).toFixed(1)} °C
+- Presión Turbo Boost: ${number(telemetry.boost, 0).toFixed(1)} PSI
+- Voltaje de batería: ${number(telemetry.voltage, 12.4).toFixed(1)} V
+- Modo de conducción activo: ${scenario}
+- Alerta activa: ${activeAlert}
+- Perfil de vehículo: ${vehicleProfile}`;
 }
 
 // ─── Gemini Handler ──────────────────────────────────────────────────────────
@@ -106,14 +120,29 @@ async function callOpenAI(userQuery, systemPrompt) {
 
 // ─── Main Handler ─────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
-  // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS: allow the deployed app, local development, and an optional custom domain.
+  const origin = req.headers.origin;
+  const allowedOrigins = new Set([
+    'https://jarvis-obd2.vercel.app',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    process.env.APP_ORIGIN
+  ].filter(Boolean));
+  if (origin && !allowedOrigins.has(origin)) {
+    return res.status(403).json({ error: 'Origen no autorizado.' });
+  }
+  if (origin) res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
+  }
+  if (Number(req.headers['content-length'] || 0) > 8192) {
+    return res.status(413).json({ error: 'La solicitud supera el tamaño permitido.' });
   }
 
   // Rate limiting por IP
@@ -126,13 +155,20 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Demasiadas solicitudes. Espera un momento.' });
   }
 
-  const { userQuery, telemetry, provider = 'gemini' } = req.body;
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const { userQuery, provider = 'gemini' } = body;
 
   if (!userQuery || typeof userQuery !== 'string' || userQuery.trim().length === 0) {
     return res.status(400).json({ error: 'El campo userQuery es requerido.' });
   }
+  if (userQuery.length > 1000) {
+    return res.status(413).json({ error: 'La consulta supera el máximo de 1000 caracteres.' });
+  }
+  if (!['gemini', 'openai'].includes(provider)) {
+    return res.status(400).json({ error: 'Proveedor no válido.' });
+  }
 
-  const systemPrompt = buildSystemPrompt(telemetry);
+  const systemPrompt = buildSystemPrompt(body.telemetry && typeof body.telemetry === 'object' ? body.telemetry : {});
 
   try {
     let reply;
@@ -164,8 +200,7 @@ export default async function handler(req, res) {
     } catch (fallbackError) {
       console.error('[Copilot Proxy] Fallback también falló:', fallbackError.message);
       return res.status(500).json({
-        error: 'El copiloto no está disponible en este momento.',
-        detail: error.message
+        error: 'El copiloto no está disponible en este momento.'
       });
     }
   }

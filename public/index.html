@@ -147,11 +147,13 @@
             <button id="btnToggleSim" onclick="toggleSimulator()" class="px-2 py-1 text-[11px] rounded bg-emerald-900/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1" title="Activar/Desactivar Simulación">
                 <i class="fa-solid fa-play"></i><span class="hidden md:inline font-bold uppercase">Sim</span>
             </button>
-            <span class="text-gray-500 mx-1 hidden sm:inline">|</span>
-            <button onclick="setDrivingScenario('idle')" class="px-2 py-1 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-gray-300 border border-slate-700">Ralentí</button>
-            <button onclick="setDrivingScenario('cruising')" class="px-2 py-1 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-gray-300 border border-slate-700">Crucero</button>
-            <button onclick="setDrivingScenario('sport')" class="px-2 py-1 text-[11px] rounded bg-indigo-950 hover:bg-indigo-900 text-indigo-300 border border-indigo-700">Deportivo</button>
-            <button onclick="setDrivingScenario('overheat')" class="px-2 py-1 text-[11px] rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800">Sobrecalentar</button>
+            <div id="scenarioControls" class="flex items-center space-x-1.5">
+                <span class="text-gray-500 mx-1 hidden sm:inline">|</span>
+                <button onclick="setDrivingScenario('idle')" class="px-2 py-1 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-gray-300 border border-slate-700">Ralentí</button>
+                <button onclick="setDrivingScenario('cruising')" class="px-2 py-1 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-gray-300 border border-slate-700">Crucero</button>
+                <button onclick="setDrivingScenario('sport')" class="px-2 py-1 text-[11px] rounded bg-indigo-950 hover:bg-indigo-900 text-indigo-300 border border-indigo-700">Deportivo</button>
+                <button onclick="setDrivingScenario('overheat')" class="px-2 py-1 text-[11px] rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800">Sobrecalentar</button>
+            </div>
         </div>
 
         <div class="flex items-center space-x-2">
@@ -161,6 +163,7 @@
                     <option value="hyundai">Hyundai/Kia (CAN 7E1)</option>
                     <option value="subaru">Subaru CVT (SSM/CAN)</option>
                     <option value="toyota">Toyota Hybrid (CAN 7E2)</option>
+                    <option value="nissan">Nissan CVT</option>
                     <option value="standard">Standard OBD-II</option>
                 </select>
             </div>
@@ -436,7 +439,7 @@
                 </div>
 
                 <div class="flex justify-between text-[10px] text-gray-400 pt-1 border-t border-cardborder/50">
-                    <span>Normal: <strong>85-98°C</strong></span>
+                    <span>Warn: <strong id="lblWarnCoolant">98°C</strong></span>
                     <span>Máx: <strong id="lblCritCoolant" class="text-rose-500">108°C</strong></span>
                 </div>
             </div>
@@ -516,8 +519,8 @@
                 </div>
 
                 <div class="mt-1 pt-1 border-t border-cardborder text-[9px] text-gray-400 flex justify-between">
-                    <span>Poll: <strong>8.5 Hz</strong></span>
-                    <span>Status: <strong class="text-emerald-400">OK</strong></span>
+                    <span>Poll: <strong id="pollRate">—</strong></span>
+                    <span>Status: <strong id="connectionStatus" class="text-emerald-400">SIMULACIÓN</strong></span>
                 </div>
             </div>
         </div>
@@ -552,7 +555,7 @@
         }
 
         const vehicleData = { rpm: 800, speed: 0, throttle: 10, tcmTemp: 82.0, coolantTemp: 89.0, boost: 0.0, voltage: 13.8 };
-        const thresholds = { tcmWarn: 105.0, tcmCrit: 118.0, coolantCrit: 108.0, voltLow: 11.8, voltCrit: 11.5, voltHigh: 15.0 };
+        const thresholds = { tcmWarn: 105.0, tcmCrit: 118.0, coolantWarn: 98.0, coolantCrit: 108.0, rpmWarn: 5500, rpmCrit: 6500, voltLow: 11.8, voltCrit: 11.5, voltHigh: 15.0 };
 
         function drawGauge(canvasId, value, minVal, maxVal, warnVal, critVal, colorBase = '#00F0FF') {
             const canvas = document.getElementById(canvasId);
@@ -642,6 +645,24 @@
             });
         }
 
+        function renderVehicleData() {
+            document.getElementById('valRpm').textContent = Math.round(vehicleData.rpm);
+            document.getElementById('valSpeed').textContent = Math.round(vehicleData.speed);
+            document.getElementById('valThrottle').textContent = Math.round(vehicleData.throttle) + '%';
+            document.getElementById('valTcmTemp').textContent = vehicleData.tcmTemp.toFixed(1);
+            document.getElementById('valCoolant').textContent = vehicleData.coolantTemp.toFixed(1);
+            document.getElementById('valBoost').textContent = vehicleData.boost.toFixed(1);
+            drawGauge('gaugeRpm', vehicleData.rpm, 0, 7000, thresholds.rpmWarn, thresholds.rpmCrit, '#00F0FF');
+            drawGauge('gaugeSpeed', vehicleData.speed, 0, 220, null, null, '#00FF66');
+            drawGauge('gaugeTcmTemp', vehicleData.tcmTemp, 20, 150, thresholds.tcmWarn, thresholds.tcmCrit, '#00F0FF');
+            drawGauge('gaugeCoolant', vehicleData.coolantTemp, 20, 130, thresholds.coolantWarn, thresholds.coolantCrit, '#00F0FF');
+            updateBatteryCard(vehicleData.voltage);
+            boostDataHistory.push(vehicleData.boost);
+            boostDataHistory.shift();
+            if (boostChart) boostChart.update('none');
+            checkVehicleAlerts();
+        }
+
         function simulateVehiclePhysics() {
             const rand = (Math.random() - 0.5);
 
@@ -686,29 +707,17 @@
                     break;
             }
 
-            document.getElementById('valRpm').innerText = Math.round(vehicleData.rpm);
-            document.getElementById('valSpeed').innerText = Math.round(vehicleData.speed);
-            document.getElementById('valThrottle').innerText = Math.round(vehicleData.throttle) + '%';
-            document.getElementById('valTcmTemp').innerText = vehicleData.tcmTemp.toFixed(1);
-            document.getElementById('valCoolant').innerText = vehicleData.coolantTemp.toFixed(1);
-            document.getElementById('valBoost').innerText = vehicleData.boost.toFixed(1);
-
-            drawGauge('gaugeRpm', vehicleData.rpm, 0, 7000, 5500, 6500, '#00F0FF');
-            drawGauge('gaugeSpeed', vehicleData.speed, 0, 220, null, null, '#00FF66');
-            drawGauge('gaugeTcmTemp', vehicleData.tcmTemp, 20, 150, thresholds.tcmWarn, thresholds.tcmCrit, '#00F0FF');
-            drawGauge('gaugeCoolant', vehicleData.coolantTemp, 20, 130, 98, thresholds.coolantCrit, '#00F0FF');
-
-            updateBatteryCard(vehicleData.voltage);
-
-            boostDataHistory.push(vehicleData.boost);
-            boostDataHistory.shift();
-            if (boostChart) boostChart.update();
+            renderVehicleData();
         }
 
-        function setDrivingScenario(s) { activeScenario = s; }
+        function setDrivingScenario(s) { if (simEnabled && ['idle', 'cruising', 'sport', 'overheat'].includes(s)) activeScenario = s; }
 
         let simEnabled = true;
         function toggleSimulator() {
+            if (elm327.connected && !simEnabled) {
+                termLog('Desconecta el scanner antes de activar la simulación.', 'warn');
+                return;
+            }
             const btn = document.getElementById('btnToggleSim');
             simEnabled = !simEnabled;
             
@@ -726,6 +735,11 @@
                 btn.className = "px-2 py-1 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-gray-400 border border-slate-600 flex items-center space-x-1";
                 btn.innerHTML = '<i class="fa-solid fa-pause"></i><span class="hidden md:inline font-bold uppercase">Sim</span>';
             }
+            document.getElementById('scenarioControls').classList.toggle('hidden', !simEnabled);
+            btn.setAttribute('aria-pressed', String(simEnabled));
+            const status = document.getElementById('connectionStatus');
+            status.textContent = simEnabled ? 'SIMULACIÓN' : 'PAUSADO';
+            status.className = simEnabled ? 'text-cyan-400' : 'text-gray-400';
         }
 
         function dismissAlert() {
@@ -752,7 +766,7 @@
             // Seed inputs with current values
             document.getElementById('thr_tcmWarn').value    = thresholds.tcmWarn;
             document.getElementById('thr_tcmCrit').value    = thresholds.tcmCrit;
-            document.getElementById('thr_coolantWarn').value = 98;
+            document.getElementById('thr_coolantWarn').value = thresholds.coolantWarn;
             document.getElementById('thr_coolantCrit').value = thresholds.coolantCrit;
             document.getElementById('thr_rpmWarn').value    = thresholds.rpmWarn  || 5500;
             document.getElementById('thr_rpmCrit').value    = thresholds.rpmCrit  || 6500;
@@ -766,13 +780,21 @@
         }
 
         function applyThresholds() {
-            thresholds.tcmWarn    = parseFloat(document.getElementById('thr_tcmWarn').value);
-            thresholds.tcmCrit    = parseFloat(document.getElementById('thr_tcmCrit').value);
-            thresholds.coolantCrit = parseFloat(document.getElementById('thr_coolantCrit').value);
-            thresholds.rpmWarn    = parseFloat(document.getElementById('thr_rpmWarn').value);
-            thresholds.rpmCrit    = parseFloat(document.getElementById('thr_rpmCrit').value);
-            thresholds.voltLow    = parseFloat(document.getElementById('thr_voltLow').value);
-            thresholds.voltCrit   = parseFloat(document.getElementById('thr_voltCrit').value);
+            const values = {
+                tcmWarn: parseFloat(document.getElementById('thr_tcmWarn').value),
+                tcmCrit: parseFloat(document.getElementById('thr_tcmCrit').value),
+                coolantWarn: parseFloat(document.getElementById('thr_coolantWarn').value),
+                coolantCrit: parseFloat(document.getElementById('thr_coolantCrit').value),
+                rpmWarn: parseFloat(document.getElementById('thr_rpmWarn').value),
+                rpmCrit: parseFloat(document.getElementById('thr_rpmCrit').value),
+                voltLow: parseFloat(document.getElementById('thr_voltLow').value),
+                voltCrit: parseFloat(document.getElementById('thr_voltCrit').value)
+            };
+            if (Object.values(values).some(v => !Number.isFinite(v)) || values.tcmWarn >= values.tcmCrit || values.coolantWarn >= values.coolantCrit || values.rpmWarn >= values.rpmCrit || values.voltCrit >= values.voltLow) {
+                alert('Revisa los umbrales y su orden. Para voltaje, el límite crítico debe ser menor que el límite bajo.');
+                return;
+            }
+            Object.assign(thresholds, values);
 
             // Update UI labels
             const lblWarnTcm  = document.getElementById('lblWarnTcm');
@@ -780,10 +802,13 @@
             const lblCoolant  = document.getElementById('lblCritCoolant');
             if (lblWarnTcm)  lblWarnTcm.textContent  = thresholds.tcmWarn + '°C';
             if (lblCritTcm)  lblCritTcm.textContent  = thresholds.tcmCrit + '°C';
+            const lblWarnCoolant = document.getElementById('lblWarnCoolant');
+            if (lblWarnCoolant) lblWarnCoolant.textContent = thresholds.coolantWarn + '°C';
             if (lblCoolant)  lblCoolant.textContent  = thresholds.coolantCrit + '°C';
 
             // Reset alert states so new limits apply cleanly
             if (alertEngine) { alertEngine._states = {}; alertEngine._lastSpoken = {}; }
+            renderVehicleData();
 
             closeThresholds();
         }
@@ -897,8 +922,11 @@
                 const badgeName  = usedProvider === 'openai' ? 'GPT-4o Mini' : 'Gemini 2.0 Flash';
                 const fallbackNote = isFallback ? ' (fallback)' : '';
 
-                responseBox.innerHTML =
-                    `<span class="provider-badge ${badgeClass}">${badgeIcon} ${badgeName}${fallbackNote}</span><br>${data.reply}`;
+                responseBox.replaceChildren();
+                const badge = document.createElement('span');
+                badge.className = `provider-badge ${badgeClass}`;
+                badge.textContent = `${badgeIcon} ${badgeName}${fallbackNote}`;
+                responseBox.append(badge, document.createElement('br'), document.createTextNode(data.reply));
 
                 if (isFallback) {
                     statusText.textContent = `Fallback a ${badgeName}`;
@@ -978,6 +1006,7 @@
                 tcm: { header: '7E1', pid: '22 10 02', decode: A => A - 40, unit: '°C', label: '221002' },
                 rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
                 speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
+                throttle:{ header: '7E0', pid: '01 11', decode: A => (A * 100) / 255, unit: '%' },
                 coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
                 boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
                 voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
@@ -987,6 +1016,7 @@
                 tcm: { header: '7E1', pid: '22 11 BC', decode: A => A - 40, unit: '°C', label: '2211BC' },
                 rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
                 speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
+                throttle:{ header: '7E0', pid: '01 11', decode: A => (A * 100) / 255, unit: '%' },
                 coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
                 boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
                 voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
@@ -996,6 +1026,7 @@
                 tcm: { header: '7E1', pid: '21 82', decode: A => A - 40, unit: '°C', label: '2182' },
                 rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
                 speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
+                throttle:{ header: '7E0', pid: '01 11', decode: A => (A * 100) / 255, unit: '%' },
                 coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
                 boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
                 voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
@@ -1005,6 +1036,7 @@
                 tcm: { header: '7E1', pid: '21 01', decode: A => A - 40, unit: '°C', label: '2101' },
                 rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
                 speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
+                throttle:{ header: '7E0', pid: '01 11', decode: A => (A * 100) / 255, unit: '%' },
                 coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
                 boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
                 voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
@@ -1014,6 +1046,7 @@
                 tcm: { header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C', label: '0105' },
                 rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
                 speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
+                throttle:{ header: '7E0', pid: '01 11', decode: A => (A * 100) / 255, unit: '%' },
                 coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
                 boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
                 voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
@@ -1106,7 +1139,15 @@
 
                 this.device.addEventListener('gattserverdisconnected', () => this._onDisconnect());
                 termLog(`▶ Dispositivo: ${this.device.name || '(sin nombre)'}`, 'ok');
-                await this._connectGATT();
+                try {
+                    await this._connectGATT();
+                } catch (error) {
+                    this.connected = false;
+                    this.txChar = this.rxChar = null;
+                    try { if (this.device?.gatt?.connected) this.device.gatt.disconnect(); } catch {}
+                    this._updateUI(false);
+                    throw error;
+                }
             }
 
             async _connectGATT() {
@@ -1151,9 +1192,9 @@
                     );
                 }
 
-                this.connected = true;
                 this._retries  = 0;
                 await this._initialize();
+                this.connected = true;
                 this._updateUI(true);
             }
 
@@ -1195,18 +1236,29 @@
                 } catch {}
 
                 // Wake up OBD bus with supported PIDs query
+                let ecuResponded = false;
                 try {
                     termLog('TX: 01 00  [Supported PIDs]', 'cmd');
                     const pids = await this.sendCommand('01 00', 4000);
-                    termLog(`RX: ${pids.trim()}`, 'resp');
+                    ecuResponded = /\b41\s+00\b/i.test(pids);
+                    termLog(`RX: ${pids.trim() || 'sin respuesta'}`, ecuResponded ? 'resp' : 'warn');
                 } catch { termLog('Bus OBD no respondió a 01 00', 'warn'); }
 
                 // Detect auto-negotiated protocol
+                this.protocol = '';
                 try {
                     const dp = await this.sendCommand('AT DPN', 2000);
                     this.protocol = dp.trim();
-                    termLog(`Protocolo detectado: ${this.protocol}`, 'ok');
+                    const protocolFailed = /UNABLE TO CONNECT|NO DATA|ERROR|\?$/.test(this.protocol.toUpperCase());
+                    termLog(`Protocolo detectado: ${this.protocol}`, protocolFailed ? 'err' : 'ok');
                 } catch {}
+
+                if (!this.protocol || this.protocol === '0' || /UNABLE TO CONNECT|NO DATA|ERROR|\?$/.test(this.protocol.toUpperCase())) {
+                    throw new Error(`El ELM327 no pudo negociar el protocolo OBD-II (${this.protocol || 'sin respuesta'}). Enciende el vehículo y confirma que el adaptador sea compatible.`);
+                }
+                if (!ecuResponded) {
+                    throw new Error(`Se detectó el protocolo ${this.protocol}, pero la ECU no respondió al PID estándar 0100. Revisa el encendido, el perfil CAN y la compatibilidad del scanner.`);
+                }
 
                 this.activeHeader = null;  // reset header cache
                 termLog('─── Listo para telemetría ───', 'ok');
@@ -1214,7 +1266,8 @@
                 // Show device info in connection pill
                 const devName = this.device.name || 'ELM327 BLE';
                 const proto   = this.protocol ? ` · Proto ${this.protocol}` : '';
-                document.getElementById('connectionText').textContent = devName + proto;
+                const connectionText = document.getElementById('connectionText');
+                if (connectionText) connectionText.textContent = devName + proto;
             }
 
             /* Accumulate BLE packets until ELM327 '>' prompt received */
@@ -1344,9 +1397,13 @@
                 this.connected    = false;
                 this.activeHeader = null;
                 this._updateUI(false);
+                this._scheduleReconnect();
+            }
 
+            _scheduleReconnect() {
                 if (this._retries > this._maxRetries) {
-                    termLog('✗ Max reintentos alcanzados. Modo simulación activo.', 'err');
+                    termLog('✗ Se agotaron los reintentos. Reconecta el scanner o activa la simulación manualmente.', 'err');
+                    if (simEnabled && !simIntervalId) simIntervalId = setInterval(runSimTick, 150);
                     return;
                 }
 
@@ -1360,7 +1417,7 @@
                         termLog('✓ Reconectado OK', 'ok');
                     } catch (e) {
                         termLog(`✗ Reintento fallido: ${e.message}`, 'err');
-                        this._onDisconnect();
+                        this._scheduleReconnect();
                     }
                 }, delay);
             }
@@ -1376,6 +1433,8 @@
                     btnBT.classList.add('text-emerald-400', 'border-emerald-500/40', 'bg-emerald-900/20');
                     if (ico) ico.className = 'fa-brands fa-bluetooth animate-pulse';
                     if (btnDisc) { btnDisc.classList.remove('hidden'); btnDisc.classList.add('flex'); }
+                    document.getElementById('connectionStatus').textContent = 'CONECTADO';
+                    document.getElementById('connectionStatus').className = 'text-emerald-400';
                 } else {
                     btnBT.classList.remove('text-emerald-400', 'border-emerald-500/40', 'bg-emerald-900/20');
                     btnBT.classList.add('text-blue-400', 'border-blue-500/30', 'bg-slate-800', 'hover:bg-slate-700');
@@ -1383,6 +1442,8 @@
                     const txt = document.getElementById('connectionText');
                     if (txt) txt.textContent = 'Conectar BT';
                     if (btnDisc) { btnDisc.classList.add('hidden'); btnDisc.classList.remove('flex'); }
+                    document.getElementById('connectionStatus').textContent = simEnabled ? 'SIMULACIÓN' : 'DESCONECTADO';
+                    document.getElementById('connectionStatus').className = simEnabled ? 'text-cyan-400' : 'text-gray-400';
                 }
             }
 
@@ -1393,16 +1454,21 @@
 
         async function bluetoothConnect() {
             const btn = document.getElementById('btnBluetooth');
-            const originalHTML = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i><span class="hidden sm:inline ml-1">Conectando...</span>';
-            let success = false;
+            const btIcon = document.getElementById('btIcon');
+            const connectionText = document.getElementById('connectionText');
+            if (btIcon) btIcon.className = 'fa-solid fa-spinner animate-spin';
+            if (connectionText) connectionText.textContent = 'Conectando...';
             try {
                 await elm327.connect();
-                success = true;
                 // Stop simulator, start real BT polling loop
                 clearInterval(simIntervalId);
                 simIntervalId = null;
+                simEnabled = false;
+                document.getElementById('scenarioControls').classList.add('hidden');
+                const simBtn = document.getElementById('btnToggleSim');
+                simBtn.className = 'px-2 py-1 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-gray-400 border border-slate-600 flex items-center space-x-1';
+                simBtn.innerHTML = '<i class="fa-solid fa-pause"></i><span class="hidden md:inline font-bold uppercase">Sim</span>';
                 setupPollingForProfile();
                 pollingLoop.start();
                 termLog('✓ Polling BT activo', 'ok');
@@ -1412,7 +1478,7 @@
                 document.getElementById('terminalLog').scrollTop = 9999;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i id="btIcon" class="fa-brands fa-bluetooth"></i><span id="connectionText" class="hidden sm:inline ml-1">Conectar BT</span>';
+                elm327._updateUI(elm327.connected);
             }
         }
 
@@ -1440,11 +1506,11 @@
         class PriorityPollingLoop {
             constructor(manager) {
                 this.mgr     = manager;
-                this._hTimer = null;
-                this._lTimer = null;
+                this._timer = null;
                 this._highQ  = [];
                 this._lowQ   = [];
                 this._running = false;
+                this._lastLowPoll = 0;
             }
 
             addHigh(name, pidDef, cb) { this._highQ.push({ name, pidDef, cb }); }
@@ -1453,34 +1519,37 @@
             start() {
                 if (this._running) return;
                 this._running = true;
-                this._pollHigh();
-                this._pollLow();
+                this._lastLowPoll = 0;
+                this._pollCycle();
             }
 
             stop() {
                 this._running = false;
-                clearTimeout(this._hTimer);
-                clearTimeout(this._lTimer);
+                clearTimeout(this._timer);
             }
 
-            async _pollHigh() {
+            async _pollCycle() {
                 if (!this._running) return;
                 const t0 = Date.now();
-                for (const item of this._highQ) {
+                let updated = false;
+                const queue = [...this._highQ];
+                if (Date.now() - this._lastLowPoll >= 2000) {
+                    queue.push(...this._lowQ);
+                    this._lastLowPoll = Date.now();
+                }
+                for (const item of queue) {
+                    if (!this._running || !this.mgr.connected) break;
                     const val = await this.mgr.queryPID(item.pidDef);
-                    if (val !== null) { item.cb(val); termLog(`${item.name}: ${val.toFixed ? val.toFixed(1) : val}`, 'resp'); }
+                    if (val !== null) {
+                        item.cb(val);
+                        updated = true;
+                        if (this._highQ.includes(item)) termLog(`${item.name}: ${val.toFixed ? val.toFixed(1) : val}`, 'resp');
+                    }
                 }
                 const elapsed = Date.now() - t0;
-                this._hTimer = setTimeout(() => this._pollHigh(), Math.max(0, 150 - elapsed));
-            }
-
-            async _pollLow() {
-                if (!this._running) return;
-                for (const item of this._lowQ) {
-                    const val = await this.mgr.queryPID(item.pidDef);
-                    if (val !== null) { item.cb(val); }
-                }
-                this._lTimer = setTimeout(() => this._pollLow(), 2000);
+                if (updated) renderVehicleData();
+                if (updated && elapsed > 0) document.getElementById('pollRate').textContent = `~${(queue.length * 1000 / elapsed).toFixed(1)} Hz`;
+                if (this._running) this._timer = setTimeout(() => this._pollCycle(), Math.max(50, 150 - (Date.now() - t0)));
             }
         }
 
@@ -1493,6 +1562,7 @@
             pollingLoop.addHigh('RPM',   p.rpm,   v => { vehicleData.rpm   = v; });
             pollingLoop.addHigh('Speed', p.speed, v => { vehicleData.speed  = v; });
             pollingLoop.addHigh('Boost', p.boost, v => { vehicleData.boost  = v; });
+            pollingLoop.addLow ('Throttle', p.throttle, v => { vehicleData.throttle = v; });
             pollingLoop.addLow ('TCM',      p.tcm,     v => { vehicleData.tcmTemp    = v; });
             pollingLoop.addLow ('Coolant',  p.coolant, v => { vehicleData.coolantTemp = v; });
             pollingLoop.addLow ('Voltage',  p.voltage, v => { vehicleData.voltage     = v; });
@@ -1543,16 +1613,18 @@
                 } catch {}
             }
 
-            check(key, value, warnThreshold, critThreshold, cardId, spokenLabel) {
+            check(key, value, warnThreshold, critThreshold, cardId, spokenLabel, direction = 'high', unit = '°C') {
                 const prev  = this._states[key] || 'normal';
                 const card  = cardId ? document.getElementById(cardId) : null;
                 let   next  = 'normal';
+                const isLow = direction === 'low';
+                const margin = unit === 'voltios' ? 0.2 : this.hysteresis;
 
-                if (critThreshold !== null && value >= critThreshold)       next = 'critical';
-                else if (warnThreshold !== null && value >= warnThreshold)  next = 'warning';
+                if (critThreshold !== null && (isLow ? value <= critThreshold : value >= critThreshold)) next = 'critical';
+                else if (warnThreshold !== null && (isLow ? value <= warnThreshold : value >= warnThreshold)) next = 'warning';
                 // Hysteresis: only clear if value drops sufficiently below threshold
-                else if (prev === 'critical' && critThreshold !== null && value >= critThreshold - this.hysteresis) next = 'critical';
-                else if (prev === 'warning'  && warnThreshold !== null && value >= warnThreshold - this.hysteresis) next = 'warning';
+                else if (prev === 'critical' && critThreshold !== null && (isLow ? value <= critThreshold + margin : value >= critThreshold - margin)) next = 'critical';
+                else if (prev === 'warning'  && warnThreshold !== null && (isLow ? value <= warnThreshold + margin : value >= warnThreshold - margin)) next = 'warning';
 
                 this._states[key] = next;
 
@@ -1582,8 +1654,8 @@
                         this.beep(freq, 0.2);
                         setTimeout(() => this.beep(freq, 0.15), 280);
                         const msg = next === 'critical'
-                            ? `Atención, ${spokenLabel} en nivel crítico: ${value.toFixed ? value.toFixed(0) : value} grados.`
-                            : `Precaución, ${spokenLabel} alcanzó ${value.toFixed ? value.toFixed(0) : value} grados.`;
+                            ? `Atención, ${spokenLabel} en nivel crítico: ${value.toFixed ? value.toFixed(1) : value} ${unit}.`
+                            : `Precaución, ${spokenLabel}: ${value.toFixed ? value.toFixed(1) : value} ${unit}.`;
                         setTimeout(() => this.speak(msg), 600);
                     }
                 } else if (next === 'normal' && prev !== 'normal') {
@@ -1610,18 +1682,20 @@
         // ══════════════════════════════════════════════════════════════════
         let simIntervalId = null;
 
+        function checkVehicleAlerts() {
+            alertEngine.check('tcm', vehicleData.tcmTemp, thresholds.tcmWarn, thresholds.tcmCrit, 'cardTcm', 'Temperatura de transmisión');
+            alertEngine.check('coolant', vehicleData.coolantTemp, thresholds.coolantWarn, thresholds.coolantCrit, 'cardCoolant', 'Temperatura de refrigerante');
+            alertEngine.check('rpm', vehicleData.rpm, thresholds.rpmWarn, thresholds.rpmCrit, null, 'Revoluciones del motor', 'high', 'RPM');
+            alertEngine.check('volt', vehicleData.voltage, thresholds.voltLow, thresholds.voltCrit, 'cardBattery', 'Voltaje de batería', 'low', 'voltios');
+            if (vehicleData.voltage >= thresholds.voltHigh) {
+                alertEngine.check('voltHigh', vehicleData.voltage, thresholds.voltHigh, null, null, 'Sobretensión del sistema', 'high', 'voltios');
+            } else {
+                alertEngine.check('voltHigh', vehicleData.voltage, null, null, null, 'Sobretensión del sistema', 'high', 'voltios');
+            }
+        }
+
         function runSimTick() {
             simulateVehiclePhysics();
-            // Run alert checks on every sim tick
-            alertEngine.check('tcm',     vehicleData.tcmTemp,    thresholds.tcmWarn,  thresholds.tcmCrit,    'cardTcm',     'Temperatura de transmisión');
-            alertEngine.check('coolant', vehicleData.coolantTemp, 98,                  thresholds.coolantCrit,'cardCoolant', 'Temperatura de refrigerante');
-            alertEngine.check('rpm',     vehicleData.rpm,         5500,                6500,                  null,          'Revoluciones del motor');
-            // Voltage: warn when < 11.8V, critical when < 11.5V
-            if (vehicleData.voltage < thresholds.voltCrit) {
-                alertEngine.check('volt', vehicleData.voltage, null, null, null, 'Voltaje de batería crítico');
-            } else if (vehicleData.voltage < thresholds.voltLow) {
-                alertEngine.check('volt', vehicleData.voltage, null, null, null, 'Voltaje de batería bajo');
-            }
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -1637,19 +1711,8 @@
             }
 
             // Start simulator by default (BT not connected)
-            simIntervalId = setInterval(() => {
-                simulateVehiclePhysics();
-                // Run alert checks on every sim tick
-                alertEngine.check('tcm',     vehicleData.tcmTemp,    thresholds.tcmWarn,  thresholds.tcmCrit,    'cardTcm',     'Temperatura de transmisión');
-                alertEngine.check('coolant', vehicleData.coolantTemp, 98,                  thresholds.coolantCrit,'cardCoolant', 'Temperatura de refrigerante');
-                alertEngine.check('rpm',     vehicleData.rpm,         5500,                6500,                  null,          'Revoluciones del motor');
-                // Voltage: warn when < 11.8V, critical when < 11.5V
-                if (vehicleData.voltage < thresholds.voltCrit) {
-                    alertEngine.check('volt', vehicleData.voltage, null, null, null, 'Voltaje de batería crítico');
-                } else if (vehicleData.voltage < thresholds.voltLow) {
-                    alertEngine.check('volt', vehicleData.voltage, null, null, null, 'Voltaje de batería bajo');
-                }
-            }, 150);
+            simIntervalId = setInterval(runSimTick, 150);
+            document.getElementById('scenarioControls').classList.toggle('hidden', !simEnabled);
         });
     </script>
 </body>

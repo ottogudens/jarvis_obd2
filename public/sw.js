@@ -110,7 +110,8 @@ async function staleWhileRevalidate(request, cacheName) {
     if (response.ok) cache.put(request, response.clone());
     return response;
   }).catch(() => null);
-  return cached || fetchPromise || offlineFallback();
+  if (cached) return cached;
+  return (await fetchPromise) || offlineFallback();
 }
 
 function offlineFallback() {

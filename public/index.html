@@ -157,15 +157,15 @@
         </div>
 
         <div class="flex items-center space-x-2">
-            <label for="vehicleProfile" title="Selecciona el perfil del vehículo para cargar sus PIDs y encabezado CAN." class="flex min-w-0 items-center space-x-1 bg-cardbg px-2 py-1 rounded border border-cardborder text-xs">
+            <label for="vehicleProfile" title="Selecciona la marca. El ELM327 detecta el protocolo; las señales estándar se consultan por OBD-II funcional." class="flex min-w-0 items-center space-x-1 bg-cardbg px-2 py-1 rounded border border-cardborder text-xs">
                 <i class="fa-solid fa-car text-cyan-400 text-xs"></i>
                 <span class="hidden sm:inline text-gray-400 font-semibold">Vehículo</span>
                 <select id="vehicleProfile" aria-label="Marca y perfil del vehículo" class="max-w-[38vw] sm:max-w-[220px] bg-transparent text-white focus:outline-none cursor-pointer text-xs">
-                    <option value="hyundai">Hyundai/Kia (CAN 7E1)</option>
-                    <option value="subaru">Subaru CVT (SSM/CAN)</option>
-                    <option value="toyota">Toyota Hybrid (CAN 7E2)</option>
-                    <option value="nissan">Nissan CVT</option>
-                    <option value="standard">Standard OBD-II</option>
+                    <option value="hyundai">Hyundai / Kia · OBD-II auto</option>
+                    <option value="subaru">Subaru · OBD-II auto</option>
+                    <option value="toyota">Toyota · OBD-II auto</option>
+                    <option value="nissan">Nissan · OBD-II auto</option>
+                    <option value="standard">OBD-II genérico · auto</option>
                 </select>
             </label>
 
@@ -275,22 +275,6 @@
                 </div>
 
                 <div class="space-y-3 text-[11px]">
-                    <!-- TCM -->
-                    <div class="bg-slate-800/60 rounded-xl p-3">
-                        <p class="text-purple-300 font-bold uppercase tracking-wider mb-2"><i class="fa-solid fa-gears mr-1"></i>Transmisión (TCM)</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <label class="flex flex-col gap-1 text-gray-400">
-                                Warn (°C)
-                                <input id="thr_tcmWarn" type="number" min="80" max="130" value="105"
-                                    class="bg-slate-700 rounded-lg px-2 py-1 text-amber-400 font-mono border border-amber-500/30 focus:outline-none focus:border-amber-400 w-full">
-                            </label>
-                            <label class="flex flex-col gap-1 text-gray-400">
-                                Crit (°C)
-                                <input id="thr_tcmCrit" type="number" min="90" max="150" value="118"
-                                    class="bg-slate-700 rounded-lg px-2 py-1 text-rose-400 font-mono border border-rose-500/30 focus:outline-none focus:border-rose-400 w-full">
-                            </label>
-                        </div>
-                    </div>
                     <!-- Coolant -->
                     <div class="bg-slate-800/60 rounded-xl p-3">
                         <p class="text-cyan-300 font-bold uppercase tracking-wider mb-2"><i class="fa-solid fa-droplet mr-1"></i>Refrigerante</p>
@@ -350,7 +334,7 @@
             </div>
         </div>
 
-        <div class="flex-1 min-h-0 grid grid-cols-2 md:grid-cols-5 gap-2">
+        <div class="flex-1 min-h-0 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
             <div class="glass-panel p-2.5 rounded-xl flex flex-col justify-between relative overflow-hidden">
                 <div class="flex justify-between items-center">
                     <div>
@@ -397,29 +381,16 @@
                 </div>
             </div>
 
-            <div id="cardTcm" class="glass-panel p-2.5 rounded-xl flex flex-col justify-between relative overflow-hidden transition-all duration-300">
+            <div id="cardMixture" class="glass-panel p-2.5 rounded-xl flex flex-col justify-between relative overflow-hidden transition-all duration-300">
                 <div class="flex justify-between items-center">
-                    <div>
-                        <span class="text-[10px] font-bold text-purple-400 uppercase flex items-center gap-1 tracking-wider">
-                            <i class="fa-solid fa-gears"></i> TCM (7E1)
-                        </span>
-                        <h3 class="text-xs font-bold text-white leading-none">TEMP. TRANSMISIÓN</h3>
-                    </div>
-                    <span id="pidTcmTag" class="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-mono">221002</span>
+                    <div><span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Mezcla · STFT/LTFT</span><h3 class="text-xs font-bold text-white leading-none">AJUSTE DE MEZCLA</h3></div>
+                    <span class="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-mono">0106/07</span>
                 </div>
-                
-                <div class="relative flex-1 flex items-center justify-center my-0.5 min-h-0">
-                    <canvas id="gaugeTcmTemp" width="160" height="105"></canvas>
-                    <div class="absolute bottom-1 text-center">
-                        <span id="valTcmTemp" class="text-2xl font-black digital-font text-white">88.5</span>
-                        <span class="text-[10px] text-gray-400 block leading-none">°C</span>
-                    </div>
+                <div class="flex-1 flex flex-col items-center justify-center gap-1 my-0.5">
+                    <span id="valFuelTrim" class="text-2xl font-black digital-font text-white">--</span>
+                    <span class="text-[10px] text-gray-400">corrección combinada</span>
                 </div>
-
-                <div class="flex justify-between text-[10px] text-gray-400 pt-1 border-t border-cardborder/50">
-                    <span>Warn: <strong id="lblWarnTcm" class="text-amber-400">105°C</strong></span>
-                    <span>Crit: <strong id="lblCritTcm" class="text-rose-500">118°C</strong></span>
-                </div>
+                <div class="text-center text-[10px] text-gray-300 pt-1 border-t border-cardborder/50"><strong id="fuelMixtureState">SIN DATOS</strong></div>
             </div>
 
             <div id="cardCoolant" class="glass-panel p-2.5 rounded-xl flex flex-col justify-between relative overflow-hidden">
@@ -443,6 +414,22 @@
                     <span>Warn: <strong id="lblWarnCoolant">98°C</strong></span>
                     <span>Máx: <strong id="lblCritCoolant" class="text-rose-500">108°C</strong></span>
                 </div>
+            </div>
+
+            <div class="glass-panel p-2.5 rounded-xl flex flex-col justify-between relative overflow-hidden">
+                <div class="flex justify-between items-center"><div><span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Lubricación</span><h3 class="text-xs font-bold text-white leading-none">TEMP. ACEITE</h3></div><span class="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 text-[10px] font-mono">015C</span></div>
+                <div class="flex-1 flex flex-col items-center justify-center"><span id="valOilTemp" class="text-2xl font-black digital-font text-white">--</span><span class="text-[10px] text-gray-400">°C · si ECU soporta</span></div>
+                <div class="text-center text-[10px] text-gray-400 pt-1 border-t border-cardborder/50">PID estándar opcional</div>
+            </div>
+            <div class="glass-panel p-2.5 rounded-xl flex flex-col justify-between relative overflow-hidden" title="La presión de aceite requiere un PID del fabricante o un sensor; OBD-II genérico no define uno universal.">
+                <div class="flex justify-between items-center"><div><span class="text-[10px] font-bold text-rose-300 uppercase tracking-wider">Lubricación</span><h3 class="text-xs font-bold text-white leading-none">PRESIÓN ACEITE</h3></div><i class="fa-solid fa-circle-info text-gray-500 text-xs"></i></div>
+                <div class="flex-1 flex flex-col items-center justify-center"><span class="text-sm font-bold text-amber-300">PID OEM</span><span class="text-[10px] text-gray-400 text-center">requiere modelo/año</span></div>
+                <div class="text-center text-[10px] text-gray-400 pt-1 border-t border-cardborder/50">Sin lectura universal</div>
+            </div>
+            <div class="glass-panel p-2.5 rounded-xl flex flex-col justify-between relative overflow-hidden">
+                <div class="flex justify-between items-center"><div><span class="text-[10px] font-bold text-rose-300 uppercase tracking-wider">Diagnóstico</span><h3 class="text-xs font-bold text-white leading-none">CÓDIGOS MOTOR</h3></div><span class="px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-300 text-[10px] font-mono">0101</span></div>
+                <div class="flex-1 flex flex-col items-center justify-center"><span id="valDtcCount" class="text-2xl font-black digital-font text-white">--</span><span id="valMilStatus" class="text-[10px] text-gray-400">MIL sin dato</span></div>
+                <div class="text-center text-[10px] text-gray-400 pt-1 border-t border-cardborder/50">DTC confirmados reportados</div>
             </div>
 
             <!-- ═══════════ BATTERY / VOLTAGE CARD ═══════════ -->
@@ -515,7 +502,7 @@
                 <div id="terminalLog" class="bg-black/80 rounded-lg p-2 font-mono text-[10px] text-emerald-400 flex-1 min-h-0 overflow-y-auto space-y-0.5 border border-slate-800">
                     <div class="text-gray-500">> AT Z</div>
                     <div class="text-gray-400">ELM327 v1.5</div>
-                    <div class="text-gray-500">> AT SH 7E1</div>
+                    <div class="text-gray-500">> AT SP 0</div>
                     <div class="text-gray-400">OK</div>
                 </div>
 
@@ -555,8 +542,8 @@
             }
         }
 
-        const vehicleData = { rpm: 800, speed: 0, throttle: 10, tcmTemp: 82.0, coolantTemp: 89.0, boost: 0.0, voltage: 13.8 };
-        const thresholds = { tcmWarn: 105.0, tcmCrit: 118.0, coolantWarn: 98.0, coolantCrit: 108.0, rpmWarn: 5500, rpmCrit: 6500, voltLow: 11.8, voltCrit: 11.5, voltHigh: 15.0 };
+        const vehicleData = { rpm: 800, speed: 0, throttle: 10, fuelTrimShort: null, fuelTrimLong: null, fuelLoopClosed: null, coolantTemp: 89.0, oilTemp: null, dtcCount: null, milOn: null, boost: 0.0, voltage: 13.8 };
+        const thresholds = { coolantWarn: 98.0, coolantCrit: 108.0, rpmWarn: 5500, rpmCrit: 6500, voltLow: 11.8, voltCrit: 11.5, voltHigh: 15.0 };
 
         function drawGauge(canvasId, value, minVal, maxVal, warnVal, critVal, colorBase = '#00F0FF') {
             const canvas = document.getElementById(canvasId);
@@ -650,18 +637,34 @@
             document.getElementById('valRpm').textContent = Math.round(vehicleData.rpm);
             document.getElementById('valSpeed').textContent = Math.round(vehicleData.speed);
             document.getElementById('valThrottle').textContent = Math.round(vehicleData.throttle) + '%';
-            document.getElementById('valTcmTemp').textContent = vehicleData.tcmTemp.toFixed(1);
+            renderFuelMixture();
+            document.getElementById('valOilTemp').textContent = vehicleData.oilTemp == null ? '--' : vehicleData.oilTemp.toFixed(0);
             document.getElementById('valCoolant').textContent = vehicleData.coolantTemp.toFixed(1);
             document.getElementById('valBoost').textContent = vehicleData.boost.toFixed(1);
             drawGauge('gaugeRpm', vehicleData.rpm, 0, 7000, thresholds.rpmWarn, thresholds.rpmCrit, '#00F0FF');
             drawGauge('gaugeSpeed', vehicleData.speed, 0, 220, null, null, '#00FF66');
-            drawGauge('gaugeTcmTemp', vehicleData.tcmTemp, 20, 150, thresholds.tcmWarn, thresholds.tcmCrit, '#00F0FF');
             drawGauge('gaugeCoolant', vehicleData.coolantTemp, 20, 130, thresholds.coolantWarn, thresholds.coolantCrit, '#00F0FF');
+            document.getElementById('valDtcCount').textContent = vehicleData.dtcCount == null ? '--' : vehicleData.dtcCount;
+            document.getElementById('valMilStatus').textContent = vehicleData.milOn == null ? 'MIL sin dato' : (vehicleData.milOn ? 'Check Engine encendido' : 'MIL apagado');
+            document.getElementById('valMilStatus').className = `text-[10px] ${vehicleData.milOn ? 'text-rose-400' : 'text-emerald-400'}`;
             updateBatteryCard(vehicleData.voltage);
             boostDataHistory.push(vehicleData.boost);
             boostDataHistory.shift();
             if (boostChart) boostChart.update('none');
             checkVehicleAlerts();
+        }
+
+        function renderFuelMixture() {
+            const value = vehicleData.fuelTrimShort == null || vehicleData.fuelTrimLong == null
+                ? null : ((1 + vehicleData.fuelTrimShort / 100) * (1 + vehicleData.fuelTrimLong / 100) - 1) * 100;
+            const valueEl = document.getElementById('valFuelTrim');
+            const stateEl = document.getElementById('fuelMixtureState');
+            if (vehicleData.fuelLoopClosed === false) { valueEl.textContent = '--'; stateEl.textContent = 'LAZO ABIERTO'; stateEl.className = 'text-amber-300'; return; }
+            if (value == null || vehicleData.fuelLoopClosed == null) { valueEl.textContent = '--'; stateEl.textContent = 'SIN DATOS / LAZO'; stateEl.className = 'text-gray-400'; return; }
+            valueEl.textContent = `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
+            if (value > 10) { stateEl.textContent = 'TENDENCIA POBRE · ECU AÑADE'; stateEl.className = 'text-amber-300'; }
+            else if (value < -10) { stateEl.textContent = 'TENDENCIA RICA · ECU RETIRA'; stateEl.className = 'text-rose-300'; }
+            else { stateEl.textContent = 'CORRECCIÓN NORMAL'; stateEl.className = 'text-emerald-300'; }
         }
 
         function simulateVehiclePhysics() {
@@ -673,8 +676,9 @@
                     vehicleData.speed = 0;
                     vehicleData.throttle = 8;
                     vehicleData.boost = -8.0 + rand * 0.5;
-                    vehicleData.tcmTemp = Math.max(80, vehicleData.tcmTemp - 0.05);
+                    vehicleData.fuelLoopClosed = true; vehicleData.fuelTrimShort = rand * 2.5; vehicleData.fuelTrimLong = rand * 2;
                     vehicleData.coolantTemp = Math.max(88, vehicleData.coolantTemp - 0.04);
+                    vehicleData.oilTemp = Math.max(82, (vehicleData.oilTemp ?? 88) - 0.04);
                     vehicleData.voltage = Math.max(13.6, Math.min(14.4, vehicleData.voltage + rand * 0.04));
                     break;
                 case 'cruising':
@@ -682,8 +686,9 @@
                     vehicleData.speed = Math.max(75, Math.min(95, vehicleData.speed + rand * 2));
                     vehicleData.throttle = 25;
                     vehicleData.boost = 2.0 + rand * 1.5;
-                    if (vehicleData.tcmTemp < 92) vehicleData.tcmTemp += 0.1;
+                    vehicleData.fuelLoopClosed = true; vehicleData.fuelTrimShort = rand * 4; vehicleData.fuelTrimLong = rand * 3;
                     if (vehicleData.coolantTemp < 92) vehicleData.coolantTemp += 0.08;
+                    vehicleData.oilTemp = Math.min(98, (vehicleData.oilTemp ?? 88) + 0.05);
                     vehicleData.voltage = Math.max(13.8, Math.min(14.6, vehicleData.voltage + rand * 0.05));
                     break;
                 case 'sport':
@@ -691,8 +696,9 @@
                     vehicleData.speed = Math.max(100, Math.min(160, vehicleData.speed + rand * 5));
                     vehicleData.throttle = 78;
                     vehicleData.boost = 14.5 + rand * 3.0;
-                    if (vehicleData.tcmTemp < 108) vehicleData.tcmTemp += 0.3;
+                    vehicleData.fuelLoopClosed = true; vehicleData.fuelTrimShort = 6 + Math.abs(rand * 7); vehicleData.fuelTrimLong = 3 + Math.abs(rand * 4);
                     if (vehicleData.coolantTemp < 102) vehicleData.coolantTemp += 0.2;
+                    vehicleData.oilTemp = Math.min(115, (vehicleData.oilTemp ?? 88) + 0.12);
                     // Heavy electrical load (fans, fuel pump, ignition) slightly drops voltage
                     vehicleData.voltage = Math.max(13.2, Math.min(14.2, vehicleData.voltage + rand * 0.08));
                     break;
@@ -701,8 +707,9 @@
                     vehicleData.speed = 120 + rand * 2;
                     vehicleData.throttle = 90;
                     vehicleData.boost = 18.0 + rand * 1.0;
-                    vehicleData.tcmTemp += 0.4;
+                    vehicleData.fuelLoopClosed = true; vehicleData.fuelTrimShort = 15 + Math.abs(rand * 4); vehicleData.fuelTrimLong = 7;
                     vehicleData.coolantTemp += 0.25;
+                    vehicleData.oilTemp = (vehicleData.oilTemp ?? 88) + 0.2;
                     // Alternator stressed — voltage degrades slowly
                     vehicleData.voltage = Math.max(11.4, vehicleData.voltage - 0.015 + rand * 0.02);
                     break;
@@ -765,8 +772,6 @@
         // ── Threshold Modal ─────────────────────────────────────────────
         function openThresholds() {
             // Seed inputs with current values
-            document.getElementById('thr_tcmWarn').value    = thresholds.tcmWarn;
-            document.getElementById('thr_tcmCrit').value    = thresholds.tcmCrit;
             document.getElementById('thr_coolantWarn').value = thresholds.coolantWarn;
             document.getElementById('thr_coolantCrit').value = thresholds.coolantCrit;
             document.getElementById('thr_rpmWarn').value    = thresholds.rpmWarn  || 5500;
@@ -782,8 +787,6 @@
 
         function applyThresholds() {
             const values = {
-                tcmWarn: parseFloat(document.getElementById('thr_tcmWarn').value),
-                tcmCrit: parseFloat(document.getElementById('thr_tcmCrit').value),
                 coolantWarn: parseFloat(document.getElementById('thr_coolantWarn').value),
                 coolantCrit: parseFloat(document.getElementById('thr_coolantCrit').value),
                 rpmWarn: parseFloat(document.getElementById('thr_rpmWarn').value),
@@ -791,18 +794,13 @@
                 voltLow: parseFloat(document.getElementById('thr_voltLow').value),
                 voltCrit: parseFloat(document.getElementById('thr_voltCrit').value)
             };
-            if (Object.values(values).some(v => !Number.isFinite(v)) || values.tcmWarn >= values.tcmCrit || values.coolantWarn >= values.coolantCrit || values.rpmWarn >= values.rpmCrit || values.voltCrit >= values.voltLow) {
+            if (Object.values(values).some(v => !Number.isFinite(v)) || values.coolantWarn >= values.coolantCrit || values.rpmWarn >= values.rpmCrit || values.voltCrit >= values.voltLow) {
                 alert('Revisa los umbrales y su orden. Para voltaje, el límite crítico debe ser menor que el límite bajo.');
                 return;
             }
             Object.assign(thresholds, values);
 
             // Update UI labels
-            const lblWarnTcm  = document.getElementById('lblWarnTcm');
-            const lblCritTcm  = document.getElementById('lblCritTcm');
-            const lblCoolant  = document.getElementById('lblCritCoolant');
-            if (lblWarnTcm)  lblWarnTcm.textContent  = thresholds.tcmWarn + '°C';
-            if (lblCritTcm)  lblCritTcm.textContent  = thresholds.tcmCrit + '°C';
             const lblWarnCoolant = document.getElementById('lblWarnCoolant');
             if (lblWarnCoolant) lblWarnCoolant.textContent = thresholds.coolantWarn + '°C';
             if (lblCoolant)  lblCoolant.textContent  = thresholds.coolantCrit + '°C';
@@ -894,7 +892,12 @@
             const telemetry = {
                 rpm:          vehicleData.rpm,
                 speed:        vehicleData.speed,
-                tcmTemp:      vehicleData.tcmTemp,
+                fuelLoopClosed: vehicleData.fuelLoopClosed,
+                fuelTrimShort: vehicleData.fuelTrimShort,
+                fuelTrimLong: vehicleData.fuelTrimLong,
+                oilTemp: vehicleData.oilTemp,
+                dtcCount: vehicleData.dtcCount,
+                milOn: vehicleData.milOn,
                 coolantTemp:  vehicleData.coolantTemp,
                 boost:        vehicleData.boost,
                 voltage:      vehicleData.voltage ?? 12.4,
@@ -953,9 +956,9 @@
         // Expose for quick diagnosis button
         function askAiQuick(type) {
             const queries = {
-                diagnostico: `Dame un diagnóstico rápido del vehículo con la telemetría actual.`,
+                diagnostico: `Dame un diagnóstico preventivo con rpm, refrigerante, temperatura de aceite, ajustes STFT/LTFT, voltaje y estado MIL/DTC. Aclara cuando una señal no esté disponible.`,
                 turbo:        `¿Cómo está la presión del turbo en este momento?`,
-                tcm:          `¿La temperatura de la transmisión está en niveles seguros?`
+                mezcla:       `¿Qué indican los ajustes de combustible sobre una tendencia rica o pobre?`
             };
             askAiCopilot(queries[type] ?? queries.diagnostico);
         }
@@ -999,63 +1002,29 @@
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // MODULE 1 — OEM PID DATABASE
+        // MODULE 1 — OBD-II PID PROFILES
         // ══════════════════════════════════════════════════════════════════
+        // AT SP 0 negocia el transporte. No se fuerza AT SH: el ELM conserva el
+        // encabezado OBD funcional adecuado para CAN o para protocolos heredados.
         const OEM_PIDS = {
-            hyundai: {
-                name: 'Hyundai/Kia',
-                tcm: { header: '7E1', pid: '22 10 02', decode: A => A - 40, unit: '°C', label: '221002' },
-                rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
-                speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
-                throttle:{ header: '7E0', pid: '01 11', decode: A => (A * 100) / 255, unit: '%' },
-                coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
-                boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
-                voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
-            },
-            subaru: {
-                name: 'Subaru CVT',
-                tcm: { header: '7E1', pid: '22 11 BC', decode: A => A - 40, unit: '°C', label: '2211BC' },
-                rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
-                speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
-                throttle:{ header: '7E0', pid: '01 11', decode: A => (A * 100) / 255, unit: '%' },
-                coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
-                boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
-                voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
-            },
-            toyota: {
-                name: 'Toyota',
-                tcm: { header: '7E1', pid: '21 82', decode: A => A - 40, unit: '°C', label: '2182' },
-                rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
-                speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
-                throttle:{ header: '7E0', pid: '01 11', decode: A => (A * 100) / 255, unit: '%' },
-                coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
-                boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
-                voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
-            },
-            nissan: {
-                name: 'Nissan CVT',
-                tcm: { header: '7E1', pid: '21 01', decode: A => A - 40, unit: '°C', label: '2101' },
-                rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
-                speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
-                throttle:{ header: '7E0', pid: '01 11', decode: A => (A * 100) / 255, unit: '%' },
-                coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
-                boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
-                voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
-            },
-            standard: {
-                name: 'OBD-II Estándar',
-                tcm: { header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C', label: '0105' },
-                rpm:  { header: '7E0', pid: '01 0C', decode: (A,B) => ((A*256)+B)/4, unit: 'RPM' },
-                speed:{ header: '7E0', pid: '01 0D', decode: A => A, unit: 'km/h' },
-                throttle:{ header: '7E0', pid: '01 11', decode: A => (A * 100) / 255, unit: '%' },
-                coolant:{ header: '7E0', pid: '01 05', decode: A => A - 40, unit: '°C' },
-                boost:{ header: '7E0', pid: '01 0B', decode: A => (A - 101.325) * 0.145038, unit: 'PSI' },
-                voltage:{ header: '7E0', pid: '01 42', decode: (A,B) => ((A*256)+B)/1000, unit: 'V' }
-            }
+            hyundai: { name: 'Hyundai / Kia' }, subaru: { name: 'Subaru' },
+            toyota: { name: 'Toyota' }, nissan: { name: 'Nissan' }, standard: { name: 'OBD-II genérico' }
         };
-
+        const STANDARD_PIDS = {
+            rpm:      { pid: '01 0C', decode: (A,B) => ((A*256)+B)/4 },
+            speed:    { pid: '01 0D', decode: A => A },
+            throttle: { pid: '01 11', decode: A => A*100/255 },
+            coolant:  { pid: '01 05', decode: A => A-40 },
+            boost:    { pid: '01 0B', decode: A => (A-101.325)*0.145038 },
+            voltage:  { pid: '01 42', decode: (A,B) => ((A*256)+B)/1000 },
+            fuelSystem: { pid: '01 03', decode: A => A === 2 || A === 16 },
+            fuelTrimShort: { pid: '01 06', decode: A => (A-128)*100/128 },
+            fuelTrimLong:  { pid: '01 07', decode: A => (A-128)*100/128 },
+            oilTemp:  { pid: '01 5C', decode: A => A-40 },
+            diagnostics: { pid: '01 01', decode: (A) => ({ milOn: !!(A & 0x80), dtcCount: A & 0x7F }) }
+        };
         function getActiveProfile() {
-            return OEM_PIDS[document.getElementById('vehicleProfile').value] || OEM_PIDS.standard;
+            return { ...OEM_PIDS[document.getElementById('vehicleProfile').value] || OEM_PIDS.standard, ...STANDARD_PIDS };
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -1315,7 +1284,7 @@
             }
 
             async switchHeader(header) {
-                if (this.activeHeader === header) return;
+                if (!header || this.activeHeader === header) return;
                 try {
                     const r = await this.sendCommand(`AT SH ${header}`, 1500);
                     if (!r.includes('?') && !r.includes('ERROR')) {
@@ -1376,7 +1345,7 @@
                     const bytes = this.parseHex(raw, pidDef);
                     if (!bytes || bytes.length === 0) return null;
                     const val = pidDef.decode(bytes[0], bytes[1] ?? 0, bytes[2] ?? 0);
-                    return isFinite(val) ? val : null;
+                    return typeof val === 'object' && val !== null ? val : (isFinite(val) ? val : null);
                 } catch { return null; }
             }
 
@@ -1462,6 +1431,10 @@
             if (connectionText) connectionText.textContent = 'Conectando...';
             try {
                 await elm327.connect();
+                // Clear simulated-only signals so the live view never presents stale demo data.
+                vehicleData.fuelTrimShort = null; vehicleData.fuelTrimLong = null; vehicleData.fuelLoopClosed = null;
+                vehicleData.oilTemp = null; vehicleData.dtcCount = null; vehicleData.milOn = null;
+                renderVehicleData();
                 // Stop simulator, start real BT polling loop
                 clearInterval(simIntervalId);
                 simIntervalId = null;
@@ -1564,11 +1537,14 @@
             pollingLoop.addHigh('Speed', p.speed, v => { vehicleData.speed  = v; });
             pollingLoop.addHigh('Boost', p.boost, v => { vehicleData.boost  = v; });
             pollingLoop.addLow ('Throttle', p.throttle, v => { vehicleData.throttle = v; });
-            pollingLoop.addLow ('TCM',      p.tcm,     v => { vehicleData.tcmTemp    = v; });
+            pollingLoop.addLow ('Fuel loop', p.fuelSystem, v => { vehicleData.fuelLoopClosed = v; });
+            pollingLoop.addLow ('STFT B1', p.fuelTrimShort, v => { vehicleData.fuelTrimShort = v; });
+            pollingLoop.addLow ('LTFT B1', p.fuelTrimLong, v => { vehicleData.fuelTrimLong = v; });
+            pollingLoop.addLow ('Oil temp', p.oilTemp, v => { vehicleData.oilTemp = v; });
+            pollingLoop.addLow ('DTC/MIL', p.diagnostics, v => { vehicleData.dtcCount = v.dtcCount; vehicleData.milOn = v.milOn; });
             pollingLoop.addLow ('Coolant',  p.coolant, v => { vehicleData.coolantTemp = v; });
             pollingLoop.addLow ('Voltage',  p.voltage, v => { vehicleData.voltage     = v; });
-            // Update PID tag in UI
-            document.getElementById('pidTcmTag').textContent = p.tcm.label;
+            termLog(`Perfil ${p.name}: protocolo OBD-II negociado automáticamente por el ELM327.`, 'ok');
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -1684,7 +1660,6 @@
         let simIntervalId = null;
 
         function checkVehicleAlerts() {
-            alertEngine.check('tcm', vehicleData.tcmTemp, thresholds.tcmWarn, thresholds.tcmCrit, 'cardTcm', 'Temperatura de transmisión');
             alertEngine.check('coolant', vehicleData.coolantTemp, thresholds.coolantWarn, thresholds.coolantCrit, 'cardCoolant', 'Temperatura de refrigerante');
             alertEngine.check('rpm', vehicleData.rpm, thresholds.rpmWarn, thresholds.rpmCrit, null, 'Revoluciones del motor', 'high', 'RPM');
             alertEngine.check('volt', vehicleData.voltage, thresholds.voltLow, thresholds.voltCrit, 'cardBattery', 'Voltaje de batería', 'low', 'voltios');

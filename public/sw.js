@@ -6,7 +6,7 @@
  *   - Google Fonts / CDN → Stale-While-Revalidate
  */
 
-const CACHE_VERSION  = 'obd2-hud-v2';
+const CACHE_VERSION  = 'obd2-hud-v3';
 const STATIC_CACHE   = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE  = `${CACHE_VERSION}-runtime`;
 
